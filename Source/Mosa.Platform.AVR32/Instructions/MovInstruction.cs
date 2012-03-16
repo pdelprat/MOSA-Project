@@ -35,35 +35,35 @@ namespace Mosa.Platform.AVR32.Instructions
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
-            if (context.Result is RegisterOperand && context.Operand1 is ConstantOperand)
-            {
-                RegisterOperand reg = context.Result as RegisterOperand;
-                ConstantOperand op = context.Operand1 as ConstantOperand;
+			if (context.Result is RegisterOperand && context.Operand1 is ConstantOperand)
+			{
+				RegisterOperand reg = context.Result as RegisterOperand;
+				ConstantOperand op = context.Operand1 as ConstantOperand;
 
-                int value = 0;
+				int value = 0;
 
-                if (IsConstantBetween(op, -128, 127, out value))
-                {
-                    emitter.EmitK8immediateAndSingleRegister(0x01, (sbyte)value, (byte)reg.Register.RegisterCode); // mov Rd, Imm (k8)
-                }
-                else
-                    if (IsConstantBetween(op, -1048576, 1048575, out value))
-                    {
-                        emitter.EmitRegisterOrConditionCodeAndK21(0x03, (byte)reg.Register.RegisterCode, value); // mov Rd, Imm (k21)
-                    }
-                    else
-                        throw new OverflowException();
-            }
-            else
-                if ((context.Result is RegisterOperand) && (context.Operand1 is RegisterOperand))
-                {
-                    RegisterOperand destination = context.Result as RegisterOperand;
-                    RegisterOperand source = context.Operand1 as RegisterOperand;
+				if (IsConstantBetween(op, -128, 127, out value))
+				{
+					emitter.EmitK8immediateAndSingleRegister(0x01, (sbyte)value, (byte)reg.Register.RegisterCode); // mov Rd, Imm (k8)
+				}
+				else
+					if (IsConstantBetween(op, -1048576, 1048575, out value))
+					{
+						emitter.EmitRegisterOrConditionCodeAndK21(0x03, (byte)reg.Register.RegisterCode, value); // mov Rd, Imm (k21)
+					}
+					else
+						throw new OverflowException();
+			}
+			else
+				if ((context.Result is RegisterOperand) && (context.Operand1 is RegisterOperand))
+				{
+					RegisterOperand destination = context.Result as RegisterOperand;
+					RegisterOperand source = context.Operand1 as RegisterOperand;
 
-                    emitter.EmitTwoRegisterInstructions(0x09, (byte)source.Register.RegisterCode, (byte)destination.Register.RegisterCode); // mov Rd, Rs
-                }
-                else
-                    throw new Exception("Not supported combination of operands");
+					emitter.EmitTwoRegisterInstructions(0x09, (byte)source.Register.RegisterCode, (byte)destination.Register.RegisterCode); // mov Rd, Rs
+				}
+				else
+					throw new Exception("Not supported combination of operands");
 		}
 
 		/// <summary>

@@ -31,7 +31,7 @@ namespace Mosa.Platform.AVR32.Instructions
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
-			if (context.Result is RegisterOperand)
+			if (context.Operand1 is RegisterOperand)
 			{
 				RegisterOperand sp = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.SP);
 				RegisterOperand register = context.Operand1 as RegisterOperand;

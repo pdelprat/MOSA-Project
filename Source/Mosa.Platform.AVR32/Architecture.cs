@@ -164,6 +164,7 @@ namespace Mosa.Platform.AVR32
 					new IRTransformationStage(),
 					//new TweakTransformationStage(),
 					//new MemToMemConversionStage(),
+					new FinalTtransformationStage()
 				});
 
 			//methodCompilerPipeline.InsertAfterLast<IBlockOrderStage>(
