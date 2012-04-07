@@ -55,7 +55,8 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Initializes a new instance of the <see cref="ConstantPropagationStage"/> class.
 		/// </summary>
-		public ConstantPropagationStage() : this(PropagationStage.PreFolding)
+		public ConstantPropagationStage()
+			: this(PropagationStage.PreFolding)
 		{
 		}
 
@@ -68,13 +69,22 @@ namespace Mosa.Compiler.Framework
 			this.stage = stage;
 		}
 
+		#region IPipelineStage methods
+
+		string IPipelineStage.Name { get { return base.Name + "-" + stage.ToString(); } }
+
+		#endregion // IPipelineStage methods
+
 		#region IMethodCompilerStage Members
 
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
+			if (AreExceptions)
+				return;
+
 			foreach (var block in this.basicBlocks)
 				if (block.NextBlocks.Count == 0 && block.PreviousBlocks.Count == 0)
 					return;
@@ -100,7 +110,7 @@ namespace Mosa.Compiler.Framework
 					var sop = ctx.Result as SsaOperand;
 					if (sop == null || !(sop.Operand is StackOperand))
 						continue;
-					
+
 					if (!this.CheckResultsAreBuiltin(sop))
 						continue;
 
@@ -133,7 +143,7 @@ namespace Mosa.Compiler.Framework
 						return false;
 
 					var result = ctx.Result is SsaOperand ? (ctx.Result as SsaOperand).Operand : ctx.Result;
-					
+
 					if (this.CheckOperand(result))
 						continue;
 					return false;

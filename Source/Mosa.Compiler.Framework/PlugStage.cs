@@ -20,7 +20,7 @@ namespace Mosa.Compiler.Framework
 	/// <summary>
 	/// Emits metadata for assemblies and types
 	/// </summary>
-	public class PlugStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage
+	public class PlugStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage, IPlugSystem
 	{
 		#region Data members
 
@@ -33,6 +33,24 @@ namespace Mosa.Compiler.Framework
 		protected RuntimeType plugMethodAttribute;
 
 		#endregion // Data members
+
+		#region IPlugStage members
+
+		/// <summary>
+		/// Gets the plug.
+		/// </summary>
+		/// <param name="method">The method.</param>
+		/// <returns></returns>
+		RuntimeMethod IPlugSystem.GetPlugMethod(RuntimeMethod method)
+		{
+			RuntimeMethod plug = null;
+
+			plugMethods.TryGetValue(method, out plug);
+
+			return plug;
+		}
+
+		#endregion // IPlugStage members
 
 		#region IAssemblyCompilerStage members
 
@@ -115,32 +133,58 @@ namespace Mosa.Compiler.Framework
 						else
 							targetType = typeSystem.GetType(targetNameSpace, targetTypeName);
 
-						foreach (var targetMethod in targetType.Methods)
+						if (targetType == null)
 						{
-							if (targetMethod.Name == targetMethodName)
+							Trace(InternalTrace.CompilerEvent.Warning,
+								String.Format("Plug target type {0} not found. Ignoring plug.", 
+								targetAssemblyName != null ? (targetFullTypeName + "(in "+targetAssemblyName+")") : targetFullTypeName));
+							continue;
+						}
+
+						RuntimeMethod targetMethod = null;
+
+						foreach (var targetMethodCandidate in targetType.Methods)
+						{
+							if (targetMethodCandidate.Name == targetMethodName)
 							{
-								if (targetMethod.IsStatic)
+								if (targetMethodCandidate.IsStatic)
 								{
-									if (targetMethod.Signature.Matches(method.Signature))
+									if (targetMethodCandidate.Signature.Matches(method.Signature))
 									{
-										plugMethods.Add(targetMethod, method);
+										targetMethod = targetMethodCandidate;
 										break;
 									}
 								}
 								else
 								{
-									if (MatchesWithStaticThis(targetMethod, method))
+									if (MatchesWithStaticThis(targetMethodCandidate, method))
 									{
-										plugMethods.Add(targetMethod, method);
+										targetMethod = targetMethodCandidate;
 										break;
 									}
 								}
 							}
 						}
 
+						if (targetMethod != null)
+						{
+							Patch(targetMethod, method);
+						}
+						else
+						{
+							Trace(InternalTrace.CompilerEvent.Warning,
+								String.Format("No matching plug target method {0} found in type {1}. Ignoring plug.",
+								targetMethodName, targetType.ToString()));
+						}
 					}
 				}
 			}
+		}
+
+		private void Patch(RuntimeMethod targetMethod, RuntimeMethod method)
+		{
+			Trace(InternalTrace.CompilerEvent.Plug, targetMethod.ToString() + " with " + method.ToString());
+			plugMethods.Add(targetMethod, method);
 		}
 
 		private RuntimeAttribute GetAttribute(List<RuntimeAttribute> attributes, RuntimeType plugAttribute)
@@ -234,7 +278,6 @@ namespace Mosa.Compiler.Framework
 			return target.Substring(pos + 1);
 		}
 		#endregion // IAssemblyCompilerStage members
-
 
 	}
 }

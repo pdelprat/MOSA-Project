@@ -21,12 +21,10 @@ namespace Mosa.Tool.Compiler
 {
 	public class AotAssemblyCompiler : AssemblyCompiler
 	{
-		//IAssemblyLinker linker;
 
-		public AotAssemblyCompiler(IArchitecture architecture, IAssemblyLinker linker, ITypeSystem typeSystem, ITypeLayout typeLayout, IInternalTrace internalLog, CompilerOptions compilerOptions)
-			: base(architecture, typeSystem, typeLayout, internalLog, compilerOptions)
+		public AotAssemblyCompiler(IArchitecture architecture, IAssemblyLinker linker, ITypeSystem typeSystem, ITypeLayout typeLayout, IInternalTrace internalTrace, CompilerOptions compilerOptions)
+			: base(architecture, typeSystem, typeLayout, internalTrace, compilerOptions)
 		{
-			//this.linker = linker;
 
 		}
 
@@ -48,7 +46,7 @@ namespace Mosa.Tool.Compiler
 		/// <returns></returns>
 		public override IMethodCompiler CreateMethodCompiler(ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method)
 		{
-			IMethodCompiler mc = new AotMethodCompiler(this, compilationScheduler, type, method, internalTrace);
+			IMethodCompiler mc = new AotMethodCompiler(this, compilationScheduler, type, method, CompilerOptions);
 			this.Architecture.ExtendMethodCompilerPipeline(mc.Pipeline);
 			return mc;
 		}
@@ -90,7 +88,7 @@ namespace Mosa.Tool.Compiler
 				{
 					compilerOptions.BootCompilerStage,
 					new MethodPipelineExportStage(),
-					//new DelegateTypePatchStage(),
+					new DelegateTypePatchStage(),
 					new PlugStage(),
 					new AssemblyMemberCompilationSchedulerStage(), 
 					new MethodCompilerSchedulerStage(),
@@ -98,7 +96,6 @@ namespace Mosa.Tool.Compiler
 					new TypeLayoutStage(),
 					new MetadataStage(),
 					compilerOptions.BootCompilerStage,
-					//new CilHeaderBuilderStage(),
 					new ObjectFileLayoutStage(),
 					(IAssemblyCompilerStage)compilerOptions.Linker,
 					compilerOptions.MapFile != null ? new MapFileGenerationStage() : null

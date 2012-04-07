@@ -21,8 +21,8 @@ namespace Mosa.Tool.TypeExplorer
 	{
 		private IntPtr address = IntPtr.Zero;
 
-		public ExplorerMethodCompiler(ExplorerAssemblyCompiler compiler, IArchitecture architecture, ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method, IInternalTrace internalTrace)
-			: base(type, method, compiler.Pipeline.FindFirst<IAssemblyLinker>(), architecture, compiler.TypeSystem, compiler.TypeLayout, null, compilationScheduler, internalTrace)
+		public ExplorerMethodCompiler(ExplorerAssemblyCompiler assemblyCompiler, ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method, CompilerOptions compilerOptions)
+			: base(assemblyCompiler, type, method, null, compilationScheduler)
 		{
 
 			// Populate the pipeline
@@ -31,20 +31,25 @@ namespace Mosa.Tool.TypeExplorer
 				new BasicBlockBuilderStage(),
 				new ExceptionPrologueStage(),
 				new OperandDeterminationStage(),
+				new SingleUseMarkerStage(),
+				new OperandUsageAnalyzerStage(),
 				new StaticAllocationResolutionStage(),
 				new CILTransformationStage(),
+
+				(compilerOptions.EnableSSA) ? new DominanceCalculationStage() : null,
+				(compilerOptions.EnableSSA) ? new PhiPlacementStage() : null,
+				(compilerOptions.EnableSSA) ? new EnterSSA() : null,
+
+				(compilerOptions.EnableSSA) ? new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PreFolding) : null,
+				(compilerOptions.EnableSSA) ? new ConstantFoldingStage() : null,
+				(compilerOptions.EnableSSA) ? new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PostFolding) : null,
+
+				(compilerOptions.EnableSSA) ? new LeaveSSA() : null,
 				
-				//new DominanceCalculationStage(),
-				//new PhiPlacementStage(),
-				//new EnterSSA(),
-				//new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PreFolding),
-				//new ConstantFoldingStage(),
-				//new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PostFolding),
-				//new LeaveSSA(),
+				new StrengthReductionStage(),
 
 				new StackLayoutStage(),
 				new PlatformStubStage(),
-
 				new LoopAwareBlockOrderStage(),
 				new CodeGenerationStage(),
 			});

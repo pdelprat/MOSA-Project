@@ -165,5 +165,20 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <value>The exception clause header.</value>
 		ExceptionClauseHeader ExceptionClauseHeader { get; }
+
+		/// <summary>
+		/// Gets the local variables.
+		/// </summary>
+		Operand[] LocalVariables { get; }
+
+		/// <summary>
+		/// Gets the assembly compiler.
+		/// </summary>
+		AssemblyCompiler AssemblyCompiler { get; }
+
+		/// <summary>
+		/// Gets the plug.
+		/// </summary>
+		IPlugSystem PlugSystem { get; }
 	}
 }

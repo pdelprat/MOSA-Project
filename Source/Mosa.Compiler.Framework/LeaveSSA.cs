@@ -7,6 +7,7 @@
  *  Simon Wollwage (rootnode) <rootnode@mosa-project.org>
  */
 
+using System;
 using System.Diagnostics;
 using Mosa.Compiler.Framework.IR;
 using Mosa.Compiler.Framework.Operands;
@@ -21,11 +22,14 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
+			if (AreExceptions)
+				return;
+
 			foreach (var block in this.basicBlocks)
 			{
-				if (block == this.FindBlock(int.MaxValue))
+				if (block.Label == Int32.MaxValue)
 					continue;
 
 				for (var context = new Context(this.instructionSet, block); !context.EndOfInstruction; context.GotoNext())

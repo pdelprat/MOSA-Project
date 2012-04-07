@@ -55,8 +55,11 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
+			if (AreExceptions)
+				return;
+
 			var entryBlock = this.FindBlock(-1);
 			var exitBlock = this.FindBlock(int.MaxValue);
 

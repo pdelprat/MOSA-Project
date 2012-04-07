@@ -24,26 +24,15 @@ namespace Mosa.Tool.Compiler
 	/// </summary>
 	public sealed class AotMethodCompiler : BaseMethodCompiler
 	{
-		#region Data Members
-
-		/// <summary>
-		/// Holds the aot compiler, which started this method compiler.
-		/// </summary>
-		private readonly AssemblyCompiler assemblyCompiler;
-
-		#endregion // Data Members
 
 		#region Construction
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AotMethodCompiler"/> class.
 		/// </summary>
-		public AotMethodCompiler(AssemblyCompiler compiler, ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method, IInternalTrace internalLog)
-			: base(type, method, compiler.Pipeline.FindFirst<IAssemblyLinker>(), compiler.Architecture, compiler.TypeSystem, compiler.TypeLayout, null, compilationScheduler, internalLog)
+		public AotMethodCompiler(AssemblyCompiler assemblyCompiler, ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method, CompilerOptions compilerOptions)
+			: base(assemblyCompiler, type, method, null, compilationScheduler)
 		{
-			this.assemblyCompiler = compiler;
-			CompilerOptions compilerOptions = this.assemblyCompiler.CompilerOptions;
-
 			this.Pipeline.AddRange(
 				new IMethodCompilerStage[] 
 				{
@@ -51,6 +40,8 @@ namespace Mosa.Tool.Compiler
 					new BasicBlockBuilderStage(),
 					new ExceptionPrologueStage(),
 					new OperandDeterminationStage(),
+					new SingleUseMarkerStage(),
+					new OperandUsageAnalyzerStage(),
 					new StaticAllocationResolutionStage(),
 					new CILTransformationStage(),
 
@@ -63,7 +54,8 @@ namespace Mosa.Tool.Compiler
 					(compilerOptions.EnableSSA) ? new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PostFolding) : null,
 
 					(compilerOptions.EnableSSA) ? new LeaveSSA() : null,
-					(compilerOptions.EnableSSA) ? new StrengthReductionStage() : null,
+					
+					new StrengthReductionStage(),
 
 					new StackLayoutStage(),
 					new PlatformStubStage(),
@@ -88,7 +80,7 @@ namespace Mosa.Tool.Compiler
 			const MethodAttributes attrs = MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Static;
 			if ((Method.Attributes & attrs) == attrs && Method.Name == ".cctor")
 			{
-				var typeInitializerSchedulerStage = this.assemblyCompiler.Pipeline.FindFirst<ITypeInitializerSchedulerStage>();
+				var typeInitializerSchedulerStage = AssemblyCompiler.Pipeline.FindFirst<ITypeInitializerSchedulerStage>();
 				typeInitializerSchedulerStage.Schedule(Method);
 			}
 

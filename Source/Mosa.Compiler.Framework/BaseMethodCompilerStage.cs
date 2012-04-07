@@ -15,7 +15,6 @@ using Mosa.Compiler.Metadata.Loader;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
 
-
 namespace Mosa.Compiler.Framework
 {
 	/// <summary>
@@ -118,6 +117,20 @@ namespace Mosa.Compiler.Framework
 		#endregion // IMethodCompilerStage members
 
 		#region Methods
+
+		/// <summary>
+		/// Gets a value indicating whether [are exceptions].
+		/// </summary>
+		/// <value>
+		///   <c>true</c> if [are exceptions]; otherwise, <c>false</c>.
+		/// </value>
+		protected bool AreExceptions
+		{
+			get
+			{
+				return methodCompiler.ExceptionClauseHeader.Clauses.Count != 0;
+			}
+		}
 
 		/// <summary>
 		/// Gets block by label

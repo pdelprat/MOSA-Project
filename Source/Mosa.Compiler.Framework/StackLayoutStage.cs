@@ -31,8 +31,12 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Runs the specified method compiler.
 		/// </summary>
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
+			if (methodCompiler.PlugSystem != null)
+				if (methodCompiler.PlugSystem.GetPlugMethod(this.methodCompiler.Method) != null)
+					return;
+
 			List<StackOperand> locals = CollectLocalVariablesFromIL();
 
 			// Iterate and collect locals from all blocks
@@ -77,7 +81,7 @@ namespace Mosa.Compiler.Framework
 			// Allocate a list of locals
 			List<StackOperand> locals = new List<StackOperand>();
 
-			var localVariables = (methodCompiler as BaseMethodCompiler).LocalVariables;
+			var localVariables = methodCompiler.LocalVariables;
 
 			if (localVariables == null)
 				return locals;

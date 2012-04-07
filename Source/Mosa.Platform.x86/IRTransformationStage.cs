@@ -37,10 +37,10 @@ namespace Mosa.Platform.x86
 		/// <summary>
 		/// Setup stage specific processing on the compiler context.
 		/// </summary>
-		/// <param name="compiler">The compiler context to perform processing in.</param>
-		void IMethodCompilerStage.Setup(IMethodCompiler compiler)
+		/// <param name="methodCompiler">The compiler context to perform processing in.</param>
+		void IMethodCompilerStage.Setup(IMethodCompiler methodCompiler)
 		{
-			base.Setup(compiler);
+			base.Setup(methodCompiler);
 
 			IStackLayoutProvider stackLayoutProvider = methodCompiler.Pipeline.FindFirst<IStackLayoutProvider>();
 
@@ -980,24 +980,6 @@ namespace Mosa.Platform.x86
 				case CilElementType.I: goto case CilElementType.I4;
 				case CilElementType.U: goto case CilElementType.U4;
 			}
-		}
-
-		/// <summary>
-		/// Visitation function for PopInstruction"/> instructions.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.PopInstruction(Context context)
-		{
-			context.ReplaceInstructionOnly(Instruction.PopInstruction);
-		}
-
-		/// <summary>
-		/// Visitation function for PushInstruction.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.PushInstruction(Context context)
-		{
-			context.ReplaceInstructionOnly(Instruction.PushInstruction);
 		}
 
 		/// <summary>

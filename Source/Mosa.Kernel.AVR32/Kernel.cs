@@ -1,11 +1,10 @@
-﻿/*
- * (c) 2008 MOSA - The Managed Operating System Alliance
+/*
+ * (c) 2012 MOSA - The Managed Operating System Alliance
  *
  * Licensed under the terms of the New BSD License.
  *
  * Authors:
  *  Phil Garcia (tgiphil) <phil@thinkedge.com>
- *  Pascal Delprat (pdelprat) <pascal.delprat@online.fr>
  */
 
 namespace Mosa.Kernel.AVR32
@@ -18,7 +17,7 @@ namespace Mosa.Kernel.AVR32
 
 		public static void Setup()
 		{
-			// TODO:
+			// TODO
 		}
 	}
 }

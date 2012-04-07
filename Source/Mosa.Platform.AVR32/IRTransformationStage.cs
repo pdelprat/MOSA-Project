@@ -35,10 +35,10 @@ namespace Mosa.Platform.AVR32
 		/// <summary>
 		/// Setup stage specific processing on the compiler context.
 		/// </summary>
-		/// <param name="compiler">The compiler context to perform processing in.</param>
-		void IMethodCompilerStage.Setup(IMethodCompiler compiler)
+		/// <param name="methodCompiler">The compiler context to perform processing in.</param>
+		void IMethodCompilerStage.Setup(IMethodCompiler methodCompiler)
 		{
-			base.Setup(compiler);
+			base.Setup(methodCompiler);
 
 			IStackLayoutProvider stackLayoutProvider = methodCompiler.Pipeline.FindFirst<IStackLayoutProvider>();
 
@@ -812,22 +812,6 @@ namespace Mosa.Platform.AVR32
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.FloatingPointToIntegerConversionInstruction(Context context)
-		{
-		}
-
-		/// <summary>
-		/// Visitation function for PopInstruction"/> instructions.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.PopInstruction(Context context)
-		{
-		}
-
-		/// <summary>
-		/// Visitation function for PushInstruction.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.PushInstruction(Context context)
 		{
 		}
 

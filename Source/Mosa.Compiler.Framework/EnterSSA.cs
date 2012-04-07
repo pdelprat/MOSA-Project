@@ -60,8 +60,11 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		private PhiPlacementStage phiPlacementStage;
 
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
+			if (AreExceptions)
+				return;
+
 			foreach (var block in this.basicBlocks)
 				if (block.NextBlocks.Count == 0 && block.PreviousBlocks.Count == 0)
 					return;
@@ -84,9 +87,9 @@ namespace Mosa.Compiler.Framework
 				this.variableInformation[name].Count = 1;
 			}
 
-			for (var i = 0; (this.methodCompiler as BaseMethodCompiler).LocalVariables != null && i < (this.methodCompiler as BaseMethodCompiler).LocalVariables.Length; ++i)
+			for (var i = 0; methodCompiler.LocalVariables != null && i < methodCompiler.LocalVariables.Length; ++i)
 			{
-				var op = (this.methodCompiler as BaseMethodCompiler).LocalVariables[i];
+				var op = methodCompiler.LocalVariables[i];
 				var name = NameForOperand(op);
 				if (!this.variableInformation.ContainsKey(name))
 					this.variableInformation[name] = new VariableInformation();

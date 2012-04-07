@@ -49,7 +49,6 @@ namespace Mosa.Tool.TypeExplorer
 			OpenFile();
 		}
 
-
 		private void toolStripButton1_Click(object sender, EventArgs e)
 		{
 			OpenFile();
@@ -107,7 +106,7 @@ namespace Mosa.Tool.TypeExplorer
 
 		protected void LoadAssembly(string filename)
 		{
-			LoadAssembly(filename, includeTestKorlibToolStripMenuItem.Checked);
+			LoadAssembly(filename, includeTestKorlibToolStripMenuItem.Checked, cbPlatform.Text);
 		}
 
 		protected void UpdateTree()
@@ -258,7 +257,7 @@ namespace Mosa.Tool.TypeExplorer
 				toolStripStatusLabel1.GetCurrentParent().Refresh();
 			}
 
-			tbResult.AppendText(String.Format("{0:0.00}", (DateTime.Now - compileStartTime).TotalSeconds) + " ms: " + compilerStage.ToText() + ": " + info + "\n");
+			tbResult.AppendText(String.Format("{0:0.00}", (DateTime.Now - compileStartTime).TotalSeconds) + " secs: " + compilerStage.ToText() + ": " + info + "\n");
 		}
 
 		void IInstructionTraceListener.NotifyNewInstructionTrace(RuntimeMethod method, string stage, string log)
@@ -283,7 +282,7 @@ namespace Mosa.Tool.TypeExplorer
 			filter.IsLogging = true;
 			filter.MethodMatch = MatchType.Any;
 
-			ExplorerAssemblyCompiler.Compile(typeSystem, typeLayout, internalTrace, cbPlatform.Text);
+			ExplorerAssemblyCompiler.Compile(typeSystem, typeLayout, internalTrace, cbPlatform.Text, enableSSAToolStripMenuItem.Checked);
 		}
 
 		private void nowToolStripMenuItem_Click(object sender, EventArgs e)
@@ -371,7 +370,7 @@ namespace Mosa.Tool.TypeExplorer
 			ShowCodeForm();
 		}
 
-		protected void LoadAssembly(string filename, bool includeTestComponents)
+		protected void LoadAssembly(string filename, bool includeTestComponents, string platform)
 		{
 			IAssemblyLoader assemblyLoader = new AssemblyLoader();
 
@@ -379,7 +378,7 @@ namespace Mosa.Tool.TypeExplorer
 			{
 				assemblyLoader.AddPrivatePath(System.IO.Directory.GetCurrentDirectory());
 				assemblyLoader.LoadModule("mscorlib.dll");
-				assemblyLoader.LoadModule("Mosa.Platform.x86.Intrinsic.dll");
+				assemblyLoader.LoadModule("Mosa.Platform." + platform + ".Intrinsic.dll");
 				assemblyLoader.LoadModule("Mosa.Test.Runtime.dll");
 			}
 
@@ -444,7 +443,7 @@ namespace Mosa.Tool.TypeExplorer
 			{
 				if (!string.IsNullOrEmpty(form.Assembly))
 				{
-					LoadAssembly(form.Assembly, true);
+					LoadAssembly(form.Assembly, true, cbPlatform.Text);
 				}
 			}
 		}
@@ -497,14 +496,10 @@ namespace Mosa.Tool.TypeExplorer
 			}
 		}
 
-		private void toolStripButton3_Click_1(object sender, EventArgs e)
-		{
-			// TODO
-		}
-
 		private void toolStripButton4_Click(object sender, EventArgs e)
 		{
 			Compile();
+			UpdateTree();
 		}
 
 	}

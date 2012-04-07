@@ -35,22 +35,27 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Holds the current type system during compilation.
 		/// </summary>
-		protected ITypeSystem typeSystem;
+		private ITypeSystem typeSystem;
 
 		/// <summary>
 		/// Holds the current type layout during complication
 		/// </summary>
-		protected ITypeLayout typeLayout;
+		private ITypeLayout typeLayout;
 
 		/// <summary>
 		/// Holds the current internal log
 		/// </summary>
-		protected IInternalTrace internalTrace;
+		private IInternalTrace internalTrace;
 
 		/// <summary>
 		/// Holds the compiler option set
 		/// </summary>
-		protected CompilerOptions compilerOptions;
+		private CompilerOptions compilerOptions;
+
+		/// <summary>
+		/// Holds the generic type patcher
+		/// </summary>
+		private IGenericTypePatcher genericTypePatcher;
 
 		#endregion // Data members
 
@@ -72,6 +77,7 @@ namespace Mosa.Compiler.Framework
 			this.typeLayout = typeLayout;
 			this.internalTrace = internalTrace;
 			this.compilerOptions = compilerOptions;
+			this.genericTypePatcher = new GenericTypePatcher(typeSystem);
 		}
 
 		#endregion // Construction
@@ -140,6 +146,17 @@ namespace Mosa.Compiler.Framework
 		public CompilerOptions CompilerOptions
 		{
 			get { return compilerOptions; }
+		}
+
+		/// <summary>
+		/// Gets the generic type patcher.
+		/// </summary>
+		public IGenericTypePatcher GenericTypePatcher
+		{
+			get
+			{
+				return genericTypePatcher;
+			}
 		}
 
 		#endregion // Properties

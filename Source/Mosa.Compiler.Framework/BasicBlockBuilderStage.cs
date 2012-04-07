@@ -12,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-
 namespace Mosa.Compiler.Framework
 {
 	/// <summary>
@@ -39,8 +38,12 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
+			if (methodCompiler.PlugSystem != null)
+				if (methodCompiler.PlugSystem.GetPlugMethod(this.methodCompiler.Method) != null)
+					return;
+
 			// Create the prologue block
 			Context ctx = new Context(instructionSet);
 			// Add a jump instruction to the first block from the prologue

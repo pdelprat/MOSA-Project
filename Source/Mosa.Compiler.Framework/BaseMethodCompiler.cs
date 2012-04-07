@@ -118,7 +118,7 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Holds the internal logging interface
 		/// </summary>
-		protected IInternalTrace internalLog;
+		protected IInternalTrace internalTrace;
 
 		/// <summary>
 		/// Holds the blocks indexed by label
@@ -130,6 +130,16 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		private ExceptionClauseHeader exceptionClauseHeader = new ExceptionClauseHeader();
 
+		/// <summary>
+		/// Holds the assembly compiler
+		/// </summary>
+		private AssemblyCompiler assemblyCompiler;
+
+		/// <summary>
+		/// Holds the plug system
+		/// </summary>
+		private IPlugSystem plugSystem;
+
 		#endregion // Data Members
 
 		#region Construction
@@ -137,30 +147,29 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Initializes a new instance of the <see cref="BaseMethodCompiler"/> class.
 		/// </summary>
-		/// <param name="linker">The _linker.</param>
-		/// <param name="architecture">The target compilation Architecture.</param>
+		/// <param name="assemblyCompiler">The assembly compiler.</param>
 		/// <param name="type">The type, which owns the method to compile.</param>
 		/// <param name="method">The method to compile by this instance.</param>
-		protected BaseMethodCompiler(RuntimeType type, RuntimeMethod method, IAssemblyLinker linker, IArchitecture architecture, ITypeSystem typeSystem, ITypeLayout typeLayout, InstructionSet instructionSet, ICompilationSchedulerStage compilationScheduler, IInternalTrace internalLog)
+		/// <param name="instructionSet">The instruction set.</param>
+		/// <param name="compilationScheduler">The compilation scheduler.</param>
+		protected BaseMethodCompiler(AssemblyCompiler assemblyCompiler, RuntimeType type, RuntimeMethod method, InstructionSet instructionSet, ICompilationSchedulerStage compilationScheduler)
 		{
-			if (architecture == null)
-				throw new ArgumentNullException(@"architecture");
-
-			if (linker == null)
-				throw new ArgumentNullException(@"linker");
-
 			if (compilationScheduler == null)
 				throw new ArgumentNullException(@"compilationScheduler");
 
-			this.linker = linker;
-			this.architecture = architecture;
+			this.assemblyCompiler = assemblyCompiler;
 			this.method = method;
 			this.type = type;
 			this.compilationScheduler = compilationScheduler;
 			this.moduleTypeSystem = method.Module;
-			this.typeSystem = typeSystem;
-			this.typeLayout = typeLayout;
-			this.internalLog = internalLog;
+
+			this.architecture = assemblyCompiler.Architecture;
+			this.typeSystem = assemblyCompiler.TypeSystem;
+			this.typeLayout = AssemblyCompiler.TypeLayout;
+			this.internalTrace = AssemblyCompiler.InternalTrace;
+
+			this.linker = assemblyCompiler.Pipeline.FindFirst<IAssemblyLinker>();
+			this.plugSystem = assemblyCompiler.Pipeline.FindFirst<IPlugSystem>();
 
 			this.parameters = new List<Operand>(new Operand[method.Parameters.Count]);
 			this.nextStackSlot = 0;
@@ -239,7 +248,7 @@ namespace Mosa.Compiler.Framework
 		/// Gets the internal logging interface
 		/// </summary>
 		/// <value>The log.</value>
-		public IInternalTrace InternalLog { get { return internalLog; } }
+		public IInternalTrace InternalLog { get { return internalTrace; } }
 
 		/// <summary>
 		/// Gets the exception clause header.
@@ -248,9 +257,19 @@ namespace Mosa.Compiler.Framework
 		public ExceptionClauseHeader ExceptionClauseHeader { get { return exceptionClauseHeader; } }
 
 		/// <summary>
-		/// 
+		/// Gets the local variables.
 		/// </summary>
 		public Operand[] LocalVariables { get { return this.locals; } }
+
+		/// <summary>
+		/// Gets the assembly compiler.
+		/// </summary>
+		public AssemblyCompiler AssemblyCompiler { get { return assemblyCompiler; } }
+
+		/// <summary>
+		/// Gets the plug system.
+		/// </summary>
+		public IPlugSystem PlugSystem { get { return plugSystem; } }
 
 		#endregion // Properties
 
@@ -398,10 +417,9 @@ namespace Mosa.Compiler.Framework
 				if (index == 0)
 				{
 					var classSigType = new ClassSigType(type.Token);
-					var decoder = this.Pipeline.FindFirst<IInstructionDecoder>();
-					var signatureType = 
-						this.Method.DeclaringType.ContainsOpenGenericParameters ? 
-							decoder.GenericTypePatcher.PatchSignatureType(this.Method.Module, this.Method.DeclaringType as CilGenericType, type.Token) :
+					var signatureType =
+						this.Method.DeclaringType.ContainsOpenGenericParameters ?
+							assemblyCompiler.GenericTypePatcher.PatchSignatureType(this.Method.Module, this.Method.DeclaringType as CilGenericType, type.Token) :
 							classSigType;
 
 					return new ParameterOperand(
@@ -431,8 +449,7 @@ namespace Mosa.Compiler.Framework
 				if (parameterType is GenericInstSigType && (parameterType as GenericInstSigType).ContainsGenericParameters)
 				{
 					var genericInstSigType = parameterType as GenericInstSigType;
-					var decoder = this.Pipeline.FindFirst<IInstructionDecoder>();
-					parameterType = decoder.GenericTypePatcher.PatchSignatureType(this.typeSystem.InternalTypeModule, this.Method.DeclaringType, genericInstSigType.BaseType.Token);
+					parameterType = assemblyCompiler.GenericTypePatcher.PatchSignatureType(typeSystem.InternalTypeModule, Method.DeclaringType, genericInstSigType.BaseType.Token);
 				}
 				parameter = new ParameterOperand(architecture.StackFrameRegister, methodParameters[index], parameterType);
 				parameters[index] = parameter;
@@ -451,7 +468,7 @@ namespace Mosa.Compiler.Framework
 				throw new ArgumentNullException(@"localVariableSignature");
 
 			localsSig = localVariableSignature;
-												
+
 			locals = new Operand[localsSig.Locals.Length];
 
 			nextStackSlot = locals.Length + 1;
@@ -490,7 +507,7 @@ namespace Mosa.Compiler.Framework
 		}
 
 		/// <summary>
-		/// Retrieves a basic block From its label.
+		/// Retrieves a basic block from its label.
 		/// </summary>
 		/// <param name="label">The label of the basic block.</param>
 		/// <returns>

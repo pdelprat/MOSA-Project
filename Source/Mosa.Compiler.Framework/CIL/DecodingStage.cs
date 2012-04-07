@@ -16,6 +16,8 @@ using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.Metadata.Tables;
 using Mosa.Compiler.TypeSystem;
 using Mosa.Compiler.TypeSystem.Generic;
+using Mosa.Compiler.Framework.Operands;
+using IR = Mosa.Compiler.Framework.IR;
 
 namespace Mosa.Compiler.Framework.CIL
 {
@@ -40,18 +42,44 @@ namespace Mosa.Compiler.Framework.CIL
 		/// <summary>
 		/// 
 		/// </summary>
-		private IGenericTypePatcher genericTypePatcher = null;
+		private IPlugSystem plugSystem;
 
 		#endregion // Data members
 
 		#region IMethodCompilerStage Members
 
 		/// <summary>
+		/// Setup stage specific processing on the compiler context.
+		/// </summary>
+		/// <param name="methodCompiler">The compiler context to perform processing in.</param>
+		void IMethodCompilerStage.Setup(IMethodCompiler methodCompiler)
+		{
+			base.Setup(methodCompiler);
+
+			plugSystem = methodCompiler.AssemblyCompiler.Pipeline.FindFirst<IPlugSystem>();
+		}
+
+		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		public void Run()
+		void IMethodCompilerStage.Run()
 		{
-			genericTypePatcher = new GenericTypePatcher(typeSystem);
+			if (plugSystem != null)
+			{
+				RuntimeMethod plugMethod = plugSystem.GetPlugMethod(this.methodCompiler.Method);
+
+				if (plugMethod != null)
+				{
+					SymbolOperand plugSymbol = SymbolOperand.FromMethod(plugMethod);
+
+					Context ctx = new Context(instructionSet);
+					ctx.AppendInstruction(IR.Instruction.JmpInstruction, null, plugSymbol);
+					ctx.Label = -1;
+					CreateBlock(-1, ctx.Index);
+
+					return;
+				}
+			}
 
 			using (Stream code = methodCompiler.GetInstructionStream())
 			{
@@ -82,7 +110,7 @@ namespace Mosa.Compiler.Framework.CIL
 							if (local.Type is GenericInstSigType && declaringType is CilGenericType)
 							{
 								var genericInstSigType = local.Type as GenericInstSigType;
-								var genericArguments = genericTypePatcher.CloseGenericArguments((declaringType as CilGenericType).GenericArguments, genericInstSigType.GenericArguments);
+								var genericArguments = methodCompiler.AssemblyCompiler.GenericTypePatcher.CloseGenericArguments((declaringType as CilGenericType).GenericArguments, genericInstSigType.GenericArguments);
 								local = new VariableSignature(locals[i], genericArguments);
 							}
 						}
@@ -282,7 +310,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		IGenericTypePatcher IInstructionDecoder.GenericTypePatcher
 		{
-			get { return genericTypePatcher; }
+			get { return methodCompiler.AssemblyCompiler.GenericTypePatcher; }
 		}
 
 		/// <summary>

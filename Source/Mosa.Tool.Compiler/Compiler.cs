@@ -64,7 +64,7 @@ namespace Mosa.Tool.Compiler
 		/// </summary>
 		public Compiler()
 		{
-			usageString = "Usage: mosacl -o outputfile --Architecture=[x86|avr32] --format=[ELF32|ELF64|PE] {--boot=[mb0.7|null]} {additional options} inputfiles";
+			usageString = "Usage: mosacl -o outputfile --Architecture=[x86|avr32] --format=[ELF32|ELF64|PE] {--boot=[mb0.7]} {additional options} inputfiles";
 			optionSet = new OptionSet();
 			inputFiles = new List<FileInfo>();
 
@@ -125,7 +125,7 @@ namespace Mosa.Tool.Compiler
 
 			optionSet.Add(
 				"b|boot=",
-				"Specify the bootable format of the produced binary [{mb0.7|null}].",
+				"Specify the bootable format of the produced binary [{mb0.7}].",
 				delegate(string format)
 				{
 					compilerOptions.BootCompilerStage = SelectBootStage(format);
@@ -377,7 +377,7 @@ namespace Mosa.Tool.Compiler
 				// Process boot format:
 				// Boot format only matters if it's an executable
 				// Process this only now, because input files must be known
-				if (!isExecutable && compilerOptions.BootCompilerStage == null)
+				if (!isExecutable && compilerOptions.BootCompilerStage != null)
 				{
 					Console.WriteLine("Warning: Ignoring boot format, because target is not an executable.");
 					Console.WriteLine();
@@ -438,7 +438,7 @@ namespace Mosa.Tool.Compiler
 			sb.Append(" > Input file(s): ").AppendLine(String.Join(", ", new List<string>(GetInputFileNames()).ToArray()));
 			sb.Append(" > Architecture: ").AppendLine(compilerOptions.Architecture.GetType().FullName);
 			sb.Append(" > Binary format: ").AppendLine(((IPipelineStage)compilerOptions.Linker).Name);
-			sb.Append(" > Boot format: ").AppendLine(((IPipelineStage)compilerOptions.BootCompilerStage).Name);
+			sb.Append(" > Boot format: ").AppendLine((compilerOptions.BootCompilerStage == null) ? "None" : ((IPipelineStage)compilerOptions.BootCompilerStage).Name);
 			sb.Append(" > Is executable: ").AppendLine(isExecutable.ToString());
 			return sb.ToString();
 		}
@@ -536,9 +536,12 @@ namespace Mosa.Tool.Compiler
 				case "mb0.7":
 					return new Multiboot0695AssemblyStage();
 
+<<<<<<< HEAD
 				case "null":
 				    return new NullbootAssemblyStage();
 
+=======
+>>>>>>> d88f6d6c2b852012223935a0b8a7763412edbd0b
 				default:
 					throw new OptionException(String.Format("Unknown or unsupported boot format {0}.", format), "boot");
 			}

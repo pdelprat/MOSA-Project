@@ -47,22 +47,6 @@ namespace Mosa.Compiler.Metadata
 			token = (uint)type | (uint)rid;
 		}
 
-		//public MetadataToken(IndexType index, int value)
-		//{
-		//    int bits = IndexBits[(int)index];
-		//    int mask = 1;
-
-		//    for (int i = 1; i < bits; i++) mask = (mask << 1) | 1;
-
-		//    // Get the table
-		//    int table = (int)value & mask;
-
-		//    // Correct the value
-		//    value = ((int)value >> bits);
-
-		//    token = (uint)IndexTables2[(int)index][table] | (uint)value;
-		//}
-
 		public int ToInt32()
 		{
 			return (int)token;
