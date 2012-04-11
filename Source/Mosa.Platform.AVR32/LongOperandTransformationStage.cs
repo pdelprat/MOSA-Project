@@ -1854,25 +1854,25 @@ namespace Mosa.Platform.AVR32
         /// Pops the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.PopInstruction(Context context)
-        {
-            if (IsInt64(context.Operand1))
-            {
-                ExpandPop(context);
-            }
-        }
+        //void IR.IIRVisitor.PopInstruction(Context context)
+        //{
+        //    if (IsInt64(context.Operand1))
+        //    {
+        //        ExpandPop(context);
+        //    }
+        //}
 
         /// <summary>
         /// Pushes the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.PushInstruction(Context context)
-        {
-            if (IsInt64(context.Operand1))
-            {
-                ExpandPush(context);
-            }
-        }
+        //void IR.IIRVisitor.PushInstruction(Context context)
+        //{
+        //    if (IsInt64(context.Operand1))
+        //    {
+        //        ExpandPush(context);
+        //    }
+        //}
 
         /// <summary>
         /// Shifts the left instruction.

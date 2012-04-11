@@ -15,44 +15,73 @@ namespace Mosa.Platform.x86.Instructions
 	/// <summary>
 	/// 
 	/// </summary>
-	public abstract class BaseInstruction : Mosa.Compiler.Framework.BaseInstruction, IX86Instruction
+	public abstract class X86Instruction : BasePlatformInstruction, IX86Instruction
 	{
+
+		#region Data Members
+
+		/// <summary>
+		/// Defines the register set of the target architecture.
+		/// </summary>
+		protected static readonly Register[] GeneralPurpose32BitRegisters = new Register[]
+		{
+			////////////////////////////////////////////////////////
+			// 32-bit general purpose registers
+			////////////////////////////////////////////////////////
+			GeneralPurposeRegister.EAX,
+			GeneralPurposeRegister.ECX,
+			GeneralPurposeRegister.EDX,
+			GeneralPurposeRegister.EBX,
+			GeneralPurposeRegister.ESI,
+			GeneralPurposeRegister.EDI,
+		};
+
+		protected static readonly Register[] FloatingPoint128BitRegisters = new Register[]
+		{
+			////////////////////////////////////////////////////////
+			// 128-bit floating point registers
+			////////////////////////////////////////////////////////
+			SSE2Register.XMM0,
+			SSE2Register.XMM1,
+			SSE2Register.XMM2,
+			SSE2Register.XMM3,
+			SSE2Register.XMM4,
+			SSE2Register.XMM5,
+			SSE2Register.XMM6,
+			SSE2Register.XMM7
+		};
+
+		#endregion //  Data Members
 
 		#region Construction
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="BaseInstruction"/> class.
+		/// Initializes a new instance of the <see cref="X86Instruction"/> class.
 		/// </summary>
-		protected BaseInstruction()
+		protected X86Instruction()
 		{
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="BaseInstruction"/> class.
+		/// Initializes a new instance of the <see cref="X86Instruction"/> class.
 		/// </summary>
 		/// <param name="operandCount">The operand count.</param>
-		private BaseInstruction(byte operandCount)
+		private X86Instruction(byte operandCount)
 			: base(operandCount)
 		{
 		}
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="BaseInstruction"/> class.
+		/// Initializes a new instance of the <see cref="X86Instruction"/> class.
 		/// </summary>
 		/// <param name="operandCount">The operand count.</param>
 		/// <param name="resultCount">The result count.</param>
-		protected BaseInstruction(byte operandCount, byte resultCount)
+		protected X86Instruction(byte operandCount, byte resultCount)
 			: base(operandCount, resultCount)
 		{
 		}
 
 		#endregion // Construction
-
-		/// <summary>
-		/// Gets the instruction latency.
-		/// </summary>
-		/// <value>The latency.</value>
-		public virtual int Latency { get { return -1; } }
 
 		#region Methods
 
@@ -120,6 +149,11 @@ namespace Mosa.Platform.x86.Instructions
 		public override string ToString()
 		{
 			return "X86." + base.ToString();
+		}
+
+		public virtual Register[] UsableRegisters
+		{
+			get { return null; }
 		}
 
 		#endregion // Operand Overrides

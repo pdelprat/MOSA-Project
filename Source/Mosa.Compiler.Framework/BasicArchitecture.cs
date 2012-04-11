@@ -56,6 +56,14 @@ namespace Mosa.Compiler.Framework
 		public abstract Register StackFrameRegister { get; }
 
 		/// <summary>
+		/// Gets the name of the platform.
+		/// </summary>
+		/// <value>
+		/// The name of the platform.
+		/// </value>
+		public abstract string PlatformName { get; }
+
+		/// <summary>
 		/// Gets the signature type of the native integer.
 		/// </summary>
 		public SigType NativeType
@@ -119,10 +127,7 @@ namespace Mosa.Compiler.Framework
 		/// <returns>
 		/// The operand, which holds the instruction result.
 		/// </returns>
-		public virtual Operand CreateResultOperand(SigType type, int label, int index)
-		{
-			return new TemporaryOperand(label, type, StackFrameRegister, index);
-		}
+		public abstract Operand CreateResultOperand(SigType type);
 
 		/// <summary>
 		/// Gets the intrinsic instruction by type

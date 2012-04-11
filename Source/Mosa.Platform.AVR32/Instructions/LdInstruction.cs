@@ -32,6 +32,9 @@ namespace Mosa.Platform.AVR32.Instructions
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
+            // TODO: Remove
+            if (context.Operand1 is MemberOperand)
+                return;
 			if (context.Result is RegisterOperand && context.Operand1 is MemoryOperand)
 			{
 				RegisterOperand result = context.Result as RegisterOperand;

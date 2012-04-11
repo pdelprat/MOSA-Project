@@ -16,7 +16,7 @@ namespace Mosa.Platform.x86.Instructions
 	/// <summary>
 	/// Representations the x86 push instruction.
 	/// </summary>
-	public sealed class PushInstruction : BaseInstruction
+	public sealed class PushInstruction : X86Instruction
 	{
 		#region Data Members
 
@@ -33,16 +33,6 @@ namespace Mosa.Platform.x86.Instructions
 
 
 		#endregion
-
-		#region Properties
-
-		/// <summary>
-		/// Gets the instruction latency.
-		/// </summary>
-		/// <value>The latency.</value>
-		public override int Latency { get { return 3; } }
-
-		#endregion // Properties
 
 		#region Methods
 

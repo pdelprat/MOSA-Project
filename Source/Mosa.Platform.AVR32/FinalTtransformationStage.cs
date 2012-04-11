@@ -122,13 +122,13 @@ namespace Mosa.Platform.AVR32
 
 			if (HighType.Type == CilElementType.I4)
 			{
-				long value = (long)constantOperand.Value;
+				long value = Convert.ToInt64(constantOperand.Value);
 				operandLow = new ConstantOperand(U4, (uint)(value & 0xFFFF));
 				operandHigh = new ConstantOperand(HighType, (int)(value >> 16));
 			}
 			else
 			{
-				uint value = (uint)constantOperand.Value;
+				uint value = Convert.ToUInt32(constantOperand.Value);
 				operandLow = new ConstantOperand(U4, (uint)(value & 0xFFFF));
 				operandHigh = new ConstantOperand(HighType, (uint)(value >> 16));
 			}

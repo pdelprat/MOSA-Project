@@ -480,7 +480,7 @@ namespace Mosa.Platform.x86
 			}
 		}
 
-		private void MoveFloatingPoint(Context context, Instructions.BaseInstruction instruction)
+		private void MoveFloatingPoint(Context context, Instructions.X86Instruction instruction)
 		{
 			RegisterOperand xmm0 = new RegisterOperand(context.Result.Type, SSE2Register.XMM0);
 			Operand result = context.Result;
@@ -779,6 +779,7 @@ namespace Mosa.Platform.x86
 			Operand operand = context.Operand1;
 			RegisterOperand eax = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EAX);
 			RegisterOperand ecx = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.ECX);
+			RegisterOperand edx = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX);
 			RegisterOperand eaxSource = new RegisterOperand(result.Type, GeneralPurposeRegister.EAX);
 			RegisterOperand ecxSource = new RegisterOperand(operand.Type, GeneralPurposeRegister.ECX);
 
@@ -787,7 +788,7 @@ namespace Mosa.Platform.x86
 			context.AppendInstruction(Instruction.MovInstruction, ecxSource, operand);
 			context.AppendInstruction(IR.Instruction.SignExtendedMoveInstruction, ecx, ecxSource);
 			context.AppendInstruction(Instruction.DivInstruction, eax, ecx);
-			context.AppendInstruction(Instruction.MovInstruction, result, new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX));
+			context.AppendInstruction(Instruction.MovInstruction, result, edx);
 		}
 
 		/// <summary>

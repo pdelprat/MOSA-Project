@@ -62,8 +62,8 @@ namespace Mosa.Platform.AVR32.Instructions
 
 					emitter.EmitTwoRegisterInstructions(0x09, (byte)source.Register.RegisterCode, (byte)destination.Register.RegisterCode); // mov Rd, Rs
 				}
-				else
-					throw new Exception("Not supported combination of operands");
+				//else
+					//throw new Exception("Not supported combination of operands");
 		}
 
 		/// <summary>

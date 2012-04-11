@@ -16,7 +16,7 @@ namespace Mosa.Platform.x86.Instructions
 	/// <summary>
 	/// Representation the x86 jump instruction.
 	/// </summary>
-	public sealed class JmpInstruction : BaseInstruction
+	public sealed class JmpInstruction : X86Instruction
 	{
 
 		#region Data Members
@@ -25,16 +25,6 @@ namespace Mosa.Platform.x86.Instructions
 		private static readonly OpCode JmpReg = new OpCode(new byte[] { 0xFF }, 4);
 
 		#endregion
-
-		#region Properties
-
-		/// <summary>
-		/// Gets the instruction latency.
-		/// </summary>
-		/// <value>The latency.</value>
-		public override int Latency { get { return 1; } }
-
-		#endregion // Properties
 
 		#region Methods
 

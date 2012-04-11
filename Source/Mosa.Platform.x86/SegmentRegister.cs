@@ -26,14 +26,24 @@ namespace Mosa.Platform.x86
 		public enum SegmentType
 		{
 			/// <summary>
-			/// The x86 DS register instruction encoding.
-			/// </summary>
-			DS = 3,
-
-			/// <summary>
 			/// The x86 ES register instruction encoding.
 			/// </summary>
 			ES = 0,
+
+			/// <summary>
+			/// The x86 CS register instruction encoding.
+			/// </summary>
+			CS = 1,
+
+			/// <summary>
+			/// The x86 SS register instruction encoding.
+			/// </summary>
+			SS = 2,
+
+			/// <summary>
+			/// The x86 DS register instruction encoding.
+			/// </summary>
+			DS = 3,
 
 			/// <summary>
 			/// The x86 FS register instruction encoding.
@@ -43,17 +53,7 @@ namespace Mosa.Platform.x86
 			/// <summary>
 			/// The x86 GS register instruction encoding.
 			/// </summary>
-			GS = 5,
-
-			/// <summary>
-			/// The x86 SS register instruction encoding.
-			/// </summary>
-			SS = 2,
-
-			/// <summary>
-			/// The x86 CS register instruction encoding.
-			/// </summary>
-			CS = 1,
+			GS = 5
 		}
 
 		#endregion // Types
@@ -61,41 +61,41 @@ namespace Mosa.Platform.x86
 		#region Static data members
 
 		/// <summary>
+		/// Represents the CS register.
+		/// </summary>
+		public static readonly SegmentRegister CS = new SegmentRegister(SegmentType.CS, 24);
+
+		/// <summary>
 		/// Represents the DS register.
 		/// </summary>
-		public static readonly SegmentRegister DS = new SegmentRegister(SegmentType.DS);
+		public static readonly SegmentRegister DS = new SegmentRegister(SegmentType.DS, 25);
 
 		/// <summary>
 		/// Represents the ES register.
 		/// </summary>
-		public static readonly SegmentRegister ES = new SegmentRegister(SegmentType.ES);
+		public static readonly SegmentRegister ES = new SegmentRegister(SegmentType.ES, 26);
 
 		/// <summary>
 		/// Represents the FS register.
 		/// </summary>
-		public static readonly SegmentRegister FS = new SegmentRegister(SegmentType.FS);
+		public static readonly SegmentRegister FS = new SegmentRegister(SegmentType.FS, 27);
 
 		/// <summary>
 		/// Represents the GS register.
 		/// </summary>
-		public static readonly SegmentRegister GS = new SegmentRegister(SegmentType.GS);
+		public static readonly SegmentRegister GS = new SegmentRegister(SegmentType.GS, 28);
 
 		/// <summary>
 		/// Represents the SS register.
 		/// </summary>
-		public static readonly SegmentRegister SS = new SegmentRegister(SegmentType.SS);
-
-		/// <summary>
-		/// Represents the CS register.
-		/// </summary>
-		public static readonly SegmentRegister CS = new SegmentRegister(SegmentType.CS);
+		public static readonly SegmentRegister SS = new SegmentRegister(SegmentType.SS, 29);
 
 		#endregion // Static data members
 
 		/// <summary>
 		/// Stores the general purpose register identified by this object instance.
 		/// </summary>
-		private readonly SegmentType _segment;
+		private readonly SegmentType segment;
 
 		#region Construction
 
@@ -103,10 +103,10 @@ namespace Mosa.Platform.x86
 		/// Initializes a new instance of <see cref="SegmentRegister"/>.
 		/// </summary>
 		/// <param name="segment">The segment.</param>
-		private SegmentRegister(SegmentType segment) :
-			base((int)segment)
+		private SegmentRegister(SegmentType segment, int index) :
+			base(index)
 		{
-			_segment = segment;
+			this.segment = segment;
 		}
 
 		#endregion // Construction
@@ -117,14 +117,14 @@ namespace Mosa.Platform.x86
 		/// Gets the segment.
 		/// </summary>
 		/// <value>The segment.</value>
-		public SegmentType Segment { get { return _segment; } }
+		public SegmentType Segment { get { return segment; } }
 
 		/// <summary>
 		/// Returns the index of this register.
 		/// </summary>
 		public override int RegisterCode
 		{
-			get { return base.Index; }
+			get { return (int)segment; }
 		}
 
 		/// <summary>
@@ -173,7 +173,7 @@ namespace Mosa.Platform.x86
 		/// <returns>The name of the segment register.</returns>
 		public override string ToString()
 		{
-			return _segment.ToString();
+			return segment.ToString();
 		}
 
 		#endregion // Methods

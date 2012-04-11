@@ -16,17 +16,8 @@ namespace Mosa.Platform.x86.Instructions
 	/// <summary>
 	/// Representations the x86 cli instruction.
 	/// </summary>
-	public sealed class CliInstruction : BaseInstruction
+	public sealed class CliInstruction : X86Instruction
 	{
-		#region Properties
-
-		/// <summary>
-		/// Gets the instruction latency.
-		/// </summary>
-		/// <value>The latency.</value>
-		public override int Latency { get { return 11; } }
-
-		#endregion // Properties
 
 		#region Methods
 

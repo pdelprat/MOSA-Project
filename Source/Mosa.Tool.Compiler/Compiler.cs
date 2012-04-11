@@ -536,12 +536,6 @@ namespace Mosa.Tool.Compiler
 				case "mb0.7":
 					return new Multiboot0695AssemblyStage();
 
-<<<<<<< HEAD
-				case "null":
-				    return new NullbootAssemblyStage();
-
-=======
->>>>>>> d88f6d6c2b852012223935a0b8a7763412edbd0b
 				default:
 					throw new OptionException(String.Format("Unknown or unsupported boot format {0}.", format), "boot");
 			}

@@ -17,7 +17,7 @@ namespace Mosa.Platform.x86.Instructions
 	/// <summary>
 	/// Representations the x86 setcc instruction.
 	/// </summary>
-	public sealed class SetccInstruction : BaseInstruction
+	public sealed class SetccInstruction : X86Instruction
 	{
 
 		#region Data Members
@@ -40,16 +40,6 @@ namespace Mosa.Platform.x86.Instructions
 		private static readonly OpCode NZ = new OpCode(new byte[] { 0x0F, 0x95 });
 
 		#endregion
-
-		#region Properties
-
-		/// <summary>
-		/// Gets the instruction latency.
-		/// </summary>
-		/// <value>The latency.</value>
-		public override int Latency { get { return 1; } }
-
-		#endregion // Properties
 
 		#region Methods
 

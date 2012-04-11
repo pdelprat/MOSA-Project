@@ -49,7 +49,7 @@ namespace Mosa.Platform.x86
 		/// <summary>
 		/// Defines the register set of the target architecture.
 		/// </summary>
-		private static readonly Register[] Registers = new Register[]
+		private static readonly Register[] registers = new Register[]
 		{
 			////////////////////////////////////////////////////////
 			// 32-bit general purpose registers
@@ -58,8 +58,22 @@ namespace Mosa.Platform.x86
 			GeneralPurposeRegister.ECX,
 			GeneralPurposeRegister.EDX,
 			GeneralPurposeRegister.EBX,
+			GeneralPurposeRegister.ESP,
+			GeneralPurposeRegister.EBP,
 			GeneralPurposeRegister.ESI,
 			GeneralPurposeRegister.EDI,
+
+			////////////////////////////////////////////////////////
+			// MMX floating point registers
+			////////////////////////////////////////////////////////			
+			MMXRegister.MM0,
+			MMXRegister.MM1,
+			MMXRegister.MM2,
+			MMXRegister.MM3,
+			MMXRegister.MM4,
+			MMXRegister.MM5,
+			MMXRegister.MM6,
+			MMXRegister.MM7,
 
 			////////////////////////////////////////////////////////
 			// 128-bit floating point registers
@@ -71,7 +85,17 @@ namespace Mosa.Platform.x86
 			SSE2Register.XMM4,
 			SSE2Register.XMM5,
 			SSE2Register.XMM6,
-			SSE2Register.XMM7
+			SSE2Register.XMM7,
+
+			////////////////////////////////////////////////////////
+			// Segmentation Registers
+			////////////////////////////////////////////////////////
+			SegmentRegister.CS,
+			SegmentRegister.DS,
+			SegmentRegister.ES,
+			SegmentRegister.FS,
+			SegmentRegister.GS,
+			SegmentRegister.SS
 		};
 
 		/// <summary>
@@ -102,7 +126,7 @@ namespace Mosa.Platform.x86
 		/// </summary>
 		public override Register[] RegisterSet
 		{
-			get { return Registers; }
+			get { return registers; }
 		}
 
 		/// <summary>
@@ -112,6 +136,14 @@ namespace Mosa.Platform.x86
 		{
 			get { return GeneralPurposeRegister.EBP; }
 		}
+
+		/// <summary>
+		/// Gets the name of the platform.
+		/// </summary>
+		/// <value>
+		/// The name of the platform.
+		/// </value>
+		public override string PlatformName { get { return "x86"; } }
 
 		/// <summary>
 		/// Factory method for the Architecture class.
@@ -137,7 +169,7 @@ namespace Mosa.Platform.x86
 		/// <param name="instructionLabel">The label of the instruction requesting the operand.</param>
 		/// <param name="operandStackIndex">The stack index of the operand.</param>
 		/// <returns>A new operand usable as a result operand.</returns>
-		public override Operand CreateResultOperand(SigType signatureType, int instructionLabel, int operandStackIndex)
+		public override Operand CreateResultOperand(SigType signatureType)
 		{
 			return new RegisterOperand(signatureType, GeneralPurposeRegister.EAX);
 		}

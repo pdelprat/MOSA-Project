@@ -31,8 +31,8 @@ namespace Mosa.Tool.TypeExplorer
 				new BasicBlockBuilderStage(),
 				new ExceptionPrologueStage(),
 				new OperandDeterminationStage(),
-				new SingleUseMarkerStage(),
-				new OperandUsageAnalyzerStage(),
+				//new SingleUseMarkerStage(),
+				//new OperandUsageAnalyzerStage(),
 				new StaticAllocationResolutionStage(),
 				new CILTransformationStage(),
 
