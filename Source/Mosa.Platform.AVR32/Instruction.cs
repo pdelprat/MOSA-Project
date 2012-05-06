@@ -192,12 +192,12 @@ namespace Mosa.Platform.AVR32
 		/// </summary>
 		public static readonly JmpInstruction JmpInstruction = new JmpInstruction();
 
-		/// <summary>
-		/// 
-		/// </summary>
-		public static readonly LdInstruction LdInstruction = new LdInstruction();
+        /// <summary>
+        /// 
+        /// </summary>
+        public static readonly LdInstruction LdInstruction = new LdInstruction();
 
-		/// <summary>
+        /// <summary>
 		/// 
 		/// </summary>
 		public static readonly LddInstruction LddInstruction = new LddInstruction();
@@ -212,7 +212,17 @@ namespace Mosa.Platform.AVR32
 		/// </summary>
 		public static readonly LdsInstruction LdsInstruction = new LdsInstruction();
 
-		/// <summary>
+        /// <summary>
+        /// 
+        /// </summary>
+        public static readonly LdubInstruction LdubInstruction = new LdubInstruction();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static readonly LduhInstruction LduhInstruction = new LduhInstruction();
+
+        /// <summary>
 		/// 
 		/// </summary>
 		public static readonly LpmInstruction LpmInstruction = new LpmInstruction();

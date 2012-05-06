@@ -167,25 +167,45 @@ namespace Mosa.Platform.AVR32
 			Write(buffer);
 		}
 
-		/// <summary>
-		/// Emit with format 9.2.7
-		/// </summary>
-		/// <param name="pointerRegister"></param>
-		/// <param name="k5"></param>
-		/// <param name="destinationRegister"></param>
-		public void EmitDisplacementLoadWithK5Immediate(byte pointerRegister, sbyte k5, byte destinationRegister)
-		{
-			ushort buffer = 0;
+        /// <summary>
+        /// Emit with format 9.2.7
+        /// </summary>
+        /// <param name="pointerRegister"></param>
+        /// <param name="k5"></param>
+        /// <param name="destinationRegister"></param>
+        public void EmitDisplacementLoadWithK5Immediate(byte pointerRegister, sbyte k5, byte destinationRegister)
+        {
+            ushort buffer = 0;
 
-			buffer |= 0x6000;
-			buffer |= (ushort)(pointerRegister << 9);
-			buffer |= (ushort)((k5 & 0x1F) << 4);
-			buffer |= (ushort)(destinationRegister);
+            buffer |= 0x6000;
+            buffer |= (ushort)(pointerRegister << 9);
+            buffer |= (ushort)((k5 & 0x1F) << 4);
+            buffer |= (ushort)(destinationRegister);
 
-			Write(buffer);
-		}
+            Write(buffer);
+        }
 
-		/// <summary>
+        /// <summary>
+        /// Emit with format 9.2.8
+        /// </summary>
+        /// <param name="pointerRegister"></param>
+        /// <param name="opcode"></param>
+        /// <param name="k3"></param>
+        /// <param name="destinationRegister"></param>
+        public void EmitDisplacementLoadStoreWithK3Immediate(byte pointerRegister, byte opcode, sbyte k3, byte destinationRegister)
+        {
+            ushort buffer = 0;
+
+            buffer |= 0x8000;
+            buffer |= (ushort)(pointerRegister << 9);
+            buffer |= (ushort)(opcode << 7);
+            buffer |= (ushort)((k3 & 0x07) << 4);
+            buffer |= (ushort)(destinationRegister);
+
+            Write(buffer);
+        }
+
+        /// <summary>
 		/// Emit with format 9.2.13
 		/// </summary>
 		/// <param name="opcode"></param>

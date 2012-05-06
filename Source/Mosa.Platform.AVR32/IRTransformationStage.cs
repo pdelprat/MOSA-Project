@@ -57,6 +57,32 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.AddSInstruction(Context context)
 		{
+            Operand destination = context.Result;
+            Operand operand1 = context.Operand1;
+            Operand operand2 = context.Operand2;
+
+            if (operand2 != null)
+            {
+                RegisterOperand r8 = new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8);
+                RegisterOperand r9 = new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9);
+                RegisterOperand r10 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R10);
+
+                if (operand2 is ConstantOperand)
+                    context.SetInstruction(Instruction.MovInstruction, r9, operand2);
+                else
+                    context.SetInstruction(Instruction.LdInstruction, r9, operand2);
+                if (operand1 is ConstantOperand)
+                    context.AppendInstruction(Instruction.MovInstruction, r8, operand1);
+                else
+                    context.AppendInstruction(Instruction.LdInstruction, r8, operand1);
+                context.AppendInstruction(Instruction.AddInstruction, r8, r9);
+                context.AppendInstruction(Instruction.AddInstruction, r10, r8);
+                context.AppendInstruction(Instruction.StInstruction, destination, r10);
+            }
+            else
+            {
+                // TODO:
+            }
 		}
 
 		/// <summary>
@@ -71,7 +97,9 @@ namespace Mosa.Platform.AVR32
 
 			if ((result is RegisterOperand) && (operand is ConstantOperand))
 			{
-				context.SetInstruction(Instruction.AddInstruction, result, operand);
+                RegisterOperand r8 = new RegisterOperand(operand.Type, GeneralPurposeRegister.R8);
+                context.SetInstruction(Instruction.MovInstruction, r8, operand);
+				context.AppendInstruction(Instruction.AddInstruction, result, r8);
 			}
 			else
 				if ((result is MemoryOperand) && (operand is ConstantOperand))
@@ -278,7 +306,9 @@ namespace Mosa.Platform.AVR32
 
 			if ((result is RegisterOperand) && (operand is ConstantOperand))
 			{
-				context.SetInstruction(Instruction.AndInstruction, result, operand);
+                RegisterOperand r8 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+                context.SetInstruction(Instruction.MovInstruction, r8, operand);
+				context.AppendInstruction(Instruction.AndInstruction, result, r8);
 			}
 			else
 				if ((result is MemoryOperand) && (operand is ConstantOperand))
@@ -602,6 +632,31 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.MulSInstruction(Context context)
 		{
+            Operand destination = context.Result;
+            Operand operand1 = context.Operand1;
+            Operand operand2 = context.Operand2;
+
+            if (operand2 != null)
+            {
+                RegisterOperand r8 = new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8);
+                RegisterOperand r9 = new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9);
+                RegisterOperand r10 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R10);
+
+                if (operand2 is ConstantOperand)
+                    context.SetInstruction(Instruction.MovInstruction, r9, operand2);
+                else
+                    context.SetInstruction(Instruction.LdInstruction, r9, operand2);
+                if (operand1 is ConstantOperand)
+                    context.AppendInstruction(Instruction.MovInstruction, r8, operand1);
+                else
+                    context.AppendInstruction(Instruction.LdInstruction, r8, operand1);
+                context.AppendInstruction(Instruction.MulInstruction, r10, r8, r9);
+                context.AppendInstruction(Instruction.StInstruction, destination, r10);
+            }
+            else
+            {
+                // TODO:
+            }
 		}
 
 		/// <summary>
@@ -634,6 +689,32 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.SubSInstruction(Context context)
 		{
+            Operand destination = context.Result;
+            Operand operand1 = context.Operand1;
+            Operand operand2 = context.Operand2;
+
+            if (operand2 != null)
+            {
+                RegisterOperand r8 = new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8);
+                RegisterOperand r9 = new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9);
+                RegisterOperand r10 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R10);
+
+                if (operand2 is ConstantOperand)
+                    context.SetInstruction(Instruction.MovInstruction, r9, operand2);
+                else
+                    context.SetInstruction(Instruction.LdInstruction, r9, operand2);
+                if (operand1 is ConstantOperand)
+                    context.AppendInstruction(Instruction.MovInstruction, r8, operand1);
+                else
+                    context.AppendInstruction(Instruction.LdInstruction, r8, operand1);
+                context.AppendInstruction(Instruction.SubInstruction, r8, r9);
+                context.AppendInstruction(Instruction.SubInstruction, r10, r8);
+                context.AppendInstruction(Instruction.StInstruction, destination, r10);
+            }
+            else
+            {
+                // TODO:
+            }
 		}
 
 		/// <summary>
@@ -803,7 +884,29 @@ namespace Mosa.Platform.AVR32
 			}
 			else
 			{
-				//context.ReplaceInstructionOnly(Instruction.MovzxInstruction);
+                RegisterOperand r8 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R8);
+                Operand result = context.Result;
+                Operand source = context.Operand1;
+                SigType elementType = GetElementType(source.Type);
+                ConstantOperand constantOffset = offset as ConstantOperand;
+                IntPtr offsetPtr = IntPtr.Zero;
+
+                if (source is ConstantOperand)
+                    context.SetInstruction(Instruction.MovInstruction, r8, source);
+                else
+                {
+                    if (elementType.Type == CilElementType.Char ||
+                        elementType.Type == CilElementType.U1)
+                    {
+                        context.SetInstruction(Instruction.LdubInstruction, r8, source);
+                    }
+                    if (elementType.Type == CilElementType.U2)
+                    {
+                        context.SetInstruction(Instruction.LduhInstruction, r8, source);
+                    }
+                }
+
+                context.AppendInstruction(Instruction.StInstruction, result, r8);
 			}
 		}
 

@@ -245,13 +245,25 @@ namespace Mosa.Platform.AVR32.Instructions
 		/// <param name="context">The context.</param>
 		void Ldi(Context context);
 
-		/// <summary>
-		/// Lds instruction
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void Lds(Context context);
+        /// <summary>
+        /// Lds instruction
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void Lds(Context context);
 
-		/// <summary>
+        /// <summary>
+        /// Ldub instruction
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void Ldub(Context context);
+
+        /// <summary>
+        /// Lduh instruction
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void Lduh(Context context);
+
+        /// <summary>
 		/// Lpm instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
