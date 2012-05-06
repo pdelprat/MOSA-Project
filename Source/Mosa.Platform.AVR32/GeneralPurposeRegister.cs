@@ -9,17 +9,17 @@
  */
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Platform;
 using Mosa.Compiler.TypeSystem;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
+using Mosa.Compiler.Framework.Platform;
 
 namespace Mosa.Platform.AVR32
 {
 	/// <summary>
 	/// Represents integral general purpose AVR32 registers.
 	/// </summary>
-	public sealed class GeneralPurposeRegister : GenericAVR32Register
+	public sealed class GeneralPurposeRegister : Register
 	{
 		#region Types
 

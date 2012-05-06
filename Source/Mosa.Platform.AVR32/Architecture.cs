@@ -9,11 +9,12 @@
  */
 
 using System;
-using Mosa.Compiler.Framework;
-using Mosa.Compiler.Platform;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
+using Mosa.Compiler.Framework;
+using Mosa.Compiler.Framework.Stages;
 using Mosa.Compiler.Framework.Operands;
+using Mosa.Compiler.Framework.Platform;
 
 namespace Mosa.Platform.AVR32
 {

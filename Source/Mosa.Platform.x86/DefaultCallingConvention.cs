@@ -14,6 +14,7 @@ using Mosa.Compiler.Framework;
 using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
+using Mosa.Platform.x86.Stages;
 
 namespace Mosa.Platform.x86
 {
@@ -53,11 +54,11 @@ namespace Mosa.Platform.x86
 		/// <summary>
 		/// Expands the given invoke instruction to perform the method call.
 		/// </summary>
-		/// <param name="ctx">The context.</param>
+		/// <param name="context">The context.</param>
 		/// <returns>
 		/// A single instruction or an array of instructions, which appropriately represent the method call.
 		/// </returns>
-		void ICallingConvention.MakeCall(Context ctx)
+		void ICallingConvention.MakeCall(Context context)
 		{
 			/*
 			 * Calling convention is right-to-left, pushed on the stack. Return value in EAX for integral
@@ -65,30 +66,30 @@ namespace Mosa.Platform.x86
 			 * of a type, the this argument is moved to ECX right before the call.
 			 */
 
-			Operand invokeTarget = ctx.Operand1;
-			Operand result = ctx.Result;
+			Operand invokeTarget = context.Operand1;
+			Operand result = context.Result;
 
-			Stack<Operand> operands = BuildOperandStack(ctx);
+			Stack<Operand> operands = BuildOperandStack(context);
 
 			int stackSize = CalculateStackSizeForParameters(operands);
 
-			ctx.SetInstruction(Instruction.NopInstruction);
+			context.SetInstruction(X86.Nop);
 
-			ReserveStackSizeForCall(ctx, stackSize);
-
-			if (stackSize != 0)
-			{
-				PushOperands(ctx, operands, stackSize);
-			}
-
-			ctx.AppendInstruction(Instruction.CallInstruction, null, invokeTarget);
+			ReserveStackSizeForCall(context, stackSize);
 
 			if (stackSize != 0)
 			{
-				FreeStackAfterCall(ctx, stackSize);
+				PushOperands(context, operands, stackSize);
 			}
 
-			CleanupReturnValue(ctx, result);
+			context.AppendInstruction(X86.Call, null, invokeTarget);
+
+			if (stackSize != 0)
+			{
+				FreeStackAfterCall(context, stackSize);
+			}
+
+			CleanupReturnValue(context, result);
 		}
 
 		private Stack<Operand> BuildOperandStack(Context ctx)
@@ -113,8 +114,8 @@ namespace Mosa.Platform.x86
 			{
 				RegisterOperand esp = new RegisterOperand(BuiltInSigType.IntPtr, GeneralPurposeRegister.ESP);
 
-				ctx.AppendInstruction(Instruction.SubInstruction, esp, new ConstantOperand(esp.Type, stackSize));
-				ctx.AppendInstruction(Instruction.MovInstruction, new RegisterOperand(architecture.NativeType, GeneralPurposeRegister.EDX), esp);
+				ctx.AppendInstruction(X86.Sub, esp, new ConstantOperand(esp.Type, stackSize));
+				ctx.AppendInstruction(X86.Mov, new RegisterOperand(architecture.NativeType, GeneralPurposeRegister.EDX), esp);
 			}
 		}
 
@@ -123,7 +124,7 @@ namespace Mosa.Platform.x86
 			RegisterOperand esp = new RegisterOperand(BuiltInSigType.IntPtr, GeneralPurposeRegister.ESP);
 			if (stackSize != 0)
 			{
-				ctx.AppendInstruction(Instruction.AddInstruction, esp, new ConstantOperand(BuiltInSigType.IntPtr, stackSize));
+				ctx.AppendInstruction(X86.Add, esp, new ConstantOperand(BuiltInSigType.IntPtr, stackSize));
 			}
 		}
 
@@ -166,7 +167,7 @@ namespace Mosa.Platform.x86
 		private void MoveReturnValueTo32Bit(Operand resultOperand, Context ctx)
 		{
 			RegisterOperand eax = new RegisterOperand(resultOperand.Type, GeneralPurposeRegister.EAX);
-			ctx.AppendInstruction(Instruction.MovInstruction, resultOperand, eax);
+			ctx.AppendInstruction(X86.Mov, resultOperand, eax);
 		}
 
 		/// <summary>
@@ -187,8 +188,8 @@ namespace Mosa.Platform.x86
 			RegisterOperand eax = new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.EAX);
 			RegisterOperand edx = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX);
 
-			ctx.AppendInstruction(Instruction.MovInstruction, opL, eax);
-			ctx.AppendInstruction(Instruction.MovInstruction, opH, edx);
+			ctx.AppendInstruction(X86.Mov, opL, eax);
+			ctx.AppendInstruction(X86.Mov, opH, edx);
 		}
 
 		/// <summary>
@@ -205,7 +206,7 @@ namespace Mosa.Platform.x86
 				if (op.Type.Type == CilElementType.ValueType)
 				{
 					for (int i = 0; i < parameterSize; i += 4)
-						ctx.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize + i)), new MemoryOperand(op.Type, (op as MemoryOperand).Base, new IntPtr((op as MemoryOperand).Offset.ToInt64() + i)));
+						ctx.AppendInstruction(X86.Mov, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize + i)), new MemoryOperand(op.Type, (op as MemoryOperand).Base, new IntPtr((op as MemoryOperand).Offset.ToInt64() + i)));
 
 					return;
 				}
@@ -233,10 +234,10 @@ namespace Mosa.Platform.x86
 							Operand opL, opH;
 							LongOperandTransformationStage.SplitLongOperand(mop, out opL, out opH);
 
-							ctx.AppendInstruction(Instruction.MovInstruction, eax, opL);
-							ctx.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize)), eax);
-							ctx.AppendInstruction(Instruction.MovInstruction, eax, opH);
-							ctx.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize + 4)), eax);
+							ctx.AppendInstruction(X86.Mov, eax, opL);
+							ctx.AppendInstruction(X86.Mov, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize)), eax);
+							ctx.AppendInstruction(X86.Mov, eax, opH);
+							ctx.AppendInstruction(X86.Mov, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize + 4)), eax);
 						}
 						return;
 
@@ -244,7 +245,7 @@ namespace Mosa.Platform.x86
 						throw new NotSupportedException();
 				}
 
-				ctx.AppendInstruction(Instruction.MovInstruction, rop, op);
+				ctx.AppendInstruction(X86.Mov, rop, op);
 				op = rop;
 			}
 			else if (op is ConstantOperand && op.StackType == StackTypeCode.Int64)
@@ -253,15 +254,15 @@ namespace Mosa.Platform.x86
 				RegisterOperand eax = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EAX);
 				LongOperandTransformationStage.SplitLongOperand(op, out opL, out opH);
 
-				ctx.AppendInstruction(Instruction.MovInstruction, eax, opL);
-				ctx.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX, new IntPtr(stackSize)), eax);
-				ctx.AppendInstruction(Instruction.MovInstruction, eax, opH);
-				ctx.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX, new IntPtr(stackSize + 4)), eax);
+				ctx.AppendInstruction(X86.Mov, eax, opL);
+				ctx.AppendInstruction(X86.Mov, new MemoryOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX, new IntPtr(stackSize)), eax);
+				ctx.AppendInstruction(X86.Mov, eax, opH);
+				ctx.AppendInstruction(X86.Mov, new MemoryOperand(BuiltInSigType.Int32, GeneralPurposeRegister.EDX, new IntPtr(stackSize + 4)), eax);
 
 				return;
 			}
 
-			ctx.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize)), op);
+			ctx.AppendInstruction(X86.Mov, new MemoryOperand(op.Type, GeneralPurposeRegister.EDX, new IntPtr(stackSize)), op);
 		}
 
 		/// <summary>
@@ -287,9 +288,9 @@ namespace Mosa.Platform.x86
 		/// Requests the calling convention to create an appropriate move instruction to populate the return
 		/// value of a method.
 		/// </summary>
-		/// <param name="ctx">The context.</param>
+		/// <param name="context">The context.</param>
 		/// <param name="operand">The operand, that's holding the return value.</param>
-		void ICallingConvention.MoveReturnValue(Context ctx, Operand operand)
+		void ICallingConvention.MoveReturnValue(Context context, Operand operand)
 		{
 			int size, alignment;
 			architecture.GetTypeRequirements(operand.Type, out size, out alignment);
@@ -297,19 +298,12 @@ namespace Mosa.Platform.x86
 			// FIXME: Do not issue a move, if the operand is already the destination register
 			if (size == 4 || size == 2 || size == 1)
 			{
-				ctx.SetInstruction(Instruction.MovInstruction, new RegisterOperand(operand.Type, GeneralPurposeRegister.EAX), operand);
+				context.SetInstruction(X86.Mov, new RegisterOperand(operand.Type, GeneralPurposeRegister.EAX), operand);
 				return;
 			}
 			else if (size == 8 && (operand.Type.Type == CilElementType.R4 || operand.Type.Type == CilElementType.R8))
 			{
-
-				if (!(operand is MemoryOperand))
-				{
-					// Move the operand to memory by prepending an instruction
-				}
-
-				// BUG: Return values are in FP0, not XMM#0
-				ctx.SetInstruction(Instruction.MovInstruction, new RegisterOperand(operand.Type, SSE2Register.XMM0), operand);
+				context.SetInstruction(X86.Mov, new RegisterOperand(operand.Type, SSE2Register.XMM0), operand);
 				return;
 			}
 			else if (size == 8 && (operand.Type.Type == CilElementType.I8 || operand.Type.Type == CilElementType.U8))
@@ -320,8 +314,8 @@ namespace Mosa.Platform.x86
 				LongOperandTransformationStage.SplitLongOperand(operand, out opL, out opH);
 
 				// Like Win32: EDX:EAX
-				ctx.SetInstruction(Instruction.MovInstruction, new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.EAX), opL);
-				ctx.AppendInstruction(Instruction.MovInstruction, new RegisterOperand(HighType, GeneralPurposeRegister.EDX), opH);
+				context.SetInstruction(X86.Mov, new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.EAX), opL);
+				context.AppendInstruction(X86.Mov, new RegisterOperand(HighType, GeneralPurposeRegister.EDX), opH);
 
 				return;
 			}

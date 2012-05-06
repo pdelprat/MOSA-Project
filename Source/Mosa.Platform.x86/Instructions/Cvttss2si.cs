@@ -17,8 +17,9 @@ namespace Mosa.Platform.x86.Instructions
 	/// <summary>
 	/// Intermediate representation for the x86 cvtsd2ss instruction.
 	/// </summary>
-	public class Cvttss2siInstruction : TwoOperandInstruction
+	public class Cvttss2si : TwoOperandInstruction
 	{
+
 		#region Data Members
 
 		private static readonly OpCode opcode = new OpCode(new byte[] { 0xF3, 0x0F, 0x2C });

@@ -10,6 +10,7 @@
 using System;
 using Mosa.Compiler.Framework;
 using Mosa.Compiler.Framework.Operands;
+using Mosa.Compiler.Framework.Platform;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -26,7 +27,7 @@ namespace Mosa.Platform.x86.Instructions
 		#region Construction
 
 		/// <summary>
-		/// Initializes a new instance of <see cref="ThreeOperandInstruction"/>.
+		/// Initializes a new instance of <see cref="TwoOperandInstruction"/>.
 		/// </summary>
 		protected TwoOperandInstruction() :
 			base(1, 1)
@@ -50,12 +51,13 @@ namespace Mosa.Platform.x86.Instructions
 		/// <summary>
 		/// Emits the specified platform instruction.
 		/// </summary>
-		/// <param name="ctx">The context.</param>
+		/// <param name="context">The context.</param>
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
 			OpCode opCode = ComputeOpCode(context.Result, context.Operand1, null);
 			emitter.Emit(opCode, context.Result, context.Operand1);
 		}
+
 	}
 }

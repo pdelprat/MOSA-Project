@@ -11,9 +11,12 @@
 using System;
 
 using Mosa.Compiler.Framework;
+using Mosa.Compiler.Framework.Stages;
 using Mosa.Compiler.Framework.Operands;
+using Mosa.Compiler.Framework.Platform;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
+using Mosa.Platform.x86.Stages;
 
 namespace Mosa.Platform.x86
 {
@@ -76,7 +79,7 @@ namespace Mosa.Platform.x86
 			MMXRegister.MM7,
 
 			////////////////////////////////////////////////////////
-			// 128-bit floating point registers
+			// SSE 128-bit floating point registers
 			////////////////////////////////////////////////////////
 			SSE2Register.XMM0,
 			SSE2Register.XMM1,

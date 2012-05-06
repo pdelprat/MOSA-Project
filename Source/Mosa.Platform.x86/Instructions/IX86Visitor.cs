@@ -62,12 +62,12 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="context">The context.</param>
 		void Sub(Context context);
 		/// <summary>
-		/// SBBs instruction
+		/// Sbb instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Sbb(Context context);
 		/// <summary>
-		/// Muls instruction
+		/// Mul instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Mul(Context context);
@@ -80,37 +80,47 @@ namespace Mosa.Platform.x86.Instructions
 		/// Directs the division.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void DirectDivision(Context context);
-		/// <summary>
-		/// Divs instruction
-		/// </summary>
-		/// <param name="context">The context.</param>
 		void Div(Context context);
 		/// <summary>
-		/// Us the div.
+		/// IDiv instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void UDiv(Context context);
+		void IDiv(Context context);
 		/// <summary>
-		/// Sses the add.
+		/// AddSs instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void SseAdd(Context context);
+		void AddSs(Context context);
 		/// <summary>
-		/// Sses the sub.
+		/// SubSS instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void SseSub(Context context);
+		void SubSS(Context context);
 		/// <summary>
-		/// Sses the mul.
+		/// SubSD instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void SseMul(Context context);
+		void SubSD(Context context);
 		/// <summary>
-		/// Sses the div.
+		/// MulSS instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void SseDiv(Context context);
+		void MulSS(Context context);
+		/// <summary>
+		/// MulSD instruction
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void MulSD(Context context);
+		/// <summary>
+		/// DivSS instruction
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void DivSS(Context context);
+		/// <summary>
+		/// DivSD instruction
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void DivSD(Context context);
 		/// <summary>
 		/// Sars instruction
 		/// </summary>
@@ -147,22 +157,22 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="context">The context.</param>
 		void Cvtsi2sd(Context context);
 		/// <summary>
-		/// CVTSD2SSs instruction
+		/// Cvtsd2ss instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Cvtsd2ss(Context context);
 		/// <summary>
-		/// CVTSS2SDs instruction
+		/// Cvtss2sd instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Cvtss2sd(Context context);
 		/// <summary>
-		/// 
+		/// Cvttsd2si instruction
 		/// </summary>
 		/// <param name="context"></param>
 		void Cvttsd2si(Context context);
 		/// <summary>
-		/// 
+		/// Cvttss2si instruction
 		/// </summary>
 		/// <param name="context"></param>
 		void Cvttss2si(Context context);
@@ -247,26 +257,6 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="context">The context.</param>
 		void CpuId(Context context);
 		/// <summary>
-		/// Cpus the id eax.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void CpuIdEax(Context context);
-		/// <summary>
-		/// Cpus the id ebx.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void CpuIdEbx(Context context);
-		/// <summary>
-		/// Cpus the id ecx.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void CpuIdEcx(Context context);
-		/// <summary>
-		/// Cpus the id edx.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		void CpuIdEdx(Context context);
-		/// <summary>
 		/// Halts the machine
 		/// </summary>
 		/// <param name="context">The context.</param>
@@ -337,12 +327,12 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="context">The context.</param>
 		void Movsx(Context context);
 		/// <summary>
-		/// Movsses the specified context.
+		/// Movsses instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Movss(Context context);
 		/// <summary>
-		/// Movsds the specified context.
+		/// Movsds instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Movsd(Context context);
@@ -352,12 +342,12 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="context">The context.</param>
 		void Movzx(Context context);
 		/// <summary>
-		/// Output to port
+		/// NOP instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Nop(Context context);
 		/// <summary>
-		/// Output to port
+		/// Out instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
 		void Out(Context context);
@@ -442,9 +432,14 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="context">The context.</param>
 		void Not(Context context);
 		/// <summary>
-		/// Sses round instruction
+		/// RoundSS instruction
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void SseRound(Context context);
+		void RoundSS(Context context);
+		/// <summary>
+		/// RoundSD instruction
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void RoundSD(Context context);
 	}
 }
