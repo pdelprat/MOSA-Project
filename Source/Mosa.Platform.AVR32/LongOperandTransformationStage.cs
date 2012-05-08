@@ -19,6 +19,7 @@ using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using CIL = Mosa.Compiler.Framework.CIL;
 using IR = Mosa.Compiler.Framework.IR;
+using Mosa.Compiler.Framework.Platform;
 
 namespace Mosa.Platform.AVR32
 {
@@ -160,6 +161,8 @@ namespace Mosa.Platform.AVR32
             // with a literal/literal operand first - TODO
             RegisterOperand r8H = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
             RegisterOperand r8L = new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
+            RegisterOperand r9H = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
+            RegisterOperand r9L = new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.R9);
 
             Operand op1L, op1H, op2L, op2H, resL, resH;
             SplitLongOperand(context.Operand1, out op1L, out op1H);
@@ -167,12 +170,13 @@ namespace Mosa.Platform.AVR32
             SplitLongOperand(context.Result, out resL, out resH);
 
             context.SetInstruction(Instruction.MovInstruction, r8L, op1L);
-            context.AppendInstruction(Instruction.SubInstruction, r8L, op2L);
-            context.AppendInstruction(Instruction.MovInstruction, resL, r8L);
+            context.AppendInstruction(Instruction.MovInstruction, r9L, op2L); 
+            context.AppendInstruction(Instruction.SubInstruction, r8L, r9L);
+            context.AppendInstruction(Instruction.StInstruction, resL, r8L);
             context.AppendInstruction(Instruction.MovInstruction, r8H, op1H);
-            //TODO:
-            //context.AppendInstruction(Instruction.SbbInstruction, r8H, op2H);
-            context.AppendInstruction(Instruction.MovInstruction, resH, r8H);
+            context.AppendInstruction(Instruction.MovInstruction, r9H, op2H);
+            context.AppendInstruction(Instruction.SubInstruction, r8H, r9H); // Need to check
+            context.AppendInstruction(Instruction.StInstruction, resH, r8H);
         }
 
         /// <summary>

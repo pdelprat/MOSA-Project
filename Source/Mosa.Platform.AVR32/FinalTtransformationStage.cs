@@ -13,6 +13,7 @@ using Mosa.Compiler.Framework;
 using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
+using Mosa.Compiler.Framework.Platform;
 using System;
 
 namespace Mosa.Platform.AVR32
@@ -43,7 +44,7 @@ namespace Mosa.Platform.AVR32
 								int value;
 								if (!IsConstantBetween(ctx.Operand1 as ConstantOperand, -1048576, 1048575, out value))
 								{
-									this.HandleSlpitMov(ctx);
+									this.HandleSplitMov(ctx);
 								}
 							}
 						}
@@ -91,10 +92,10 @@ namespace Mosa.Platform.AVR32
 				case CilElementType.U2:
 				case CilElementType.Ptr:
 				case CilElementType.U4:
+                case CilElementType.R4:
 					goto case CilElementType.I;
 				case CilElementType.I8:
 				case CilElementType.U8:
-				case CilElementType.R4:
 				case CilElementType.R8:
 					goto default;
 				case CilElementType.Object:
@@ -104,7 +105,7 @@ namespace Mosa.Platform.AVR32
 			}
 		}
 
-		private void HandleSlpitMov(Context context)
+		private void HandleSplitMov(Context context)
 		{
 			Operand opL, opH;
 

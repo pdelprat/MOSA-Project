@@ -386,7 +386,36 @@ namespace Mosa.Platform.AVR32
 
 			if (context.Result.StackType == StackTypeCode.F)
 			{
-				// TODO:
+                Debug.Assert(context.Operand1.StackType == StackTypeCode.F, @"Move can't convert to floating point type.");
+                if (context.Result.Type.Type == context.Operand1.Type.Type)
+                {
+                    if (context.Result.Type.Type == CilElementType.R4)
+                    {
+                        RegisterOperand load = new RegisterOperand(BuiltInSigType.IntPtr, GeneralPurposeRegister.R9);
+
+                        if (context.Operand1 is MemoryOperand)
+                        {
+                            context.SetInstruction(Instruction.LdInstruction, load, operand);
+                        }
+                        if (context.Operand1 is ConstantOperand)
+                        {
+                            context.SetInstruction(Instruction.MovInstruction, load, operand);
+                        }
+                        context.AppendInstruction(Instruction.StInstruction, result, load);
+                    }
+                    else if (context.Result.Type.Type == CilElementType.R8)
+                    {
+                        //TODO:
+                    }   
+                }
+                else if (context.Result.Type.Type == CilElementType.R8)
+                {
+                    // TODO:
+                }
+                else if (context.Result.Type.Type == CilElementType.R4)
+                {
+                    // TODO:
+                }
 			}
 			else
 			{
@@ -907,7 +936,8 @@ namespace Mosa.Platform.AVR32
                     }
                 }
 
-                context.AppendInstruction(Instruction.StInstruction, result, r8);
+                //TEMP
+                //context.AppendInstruction(Instruction.StInstruction, result, r8);
 			}
 		}
 

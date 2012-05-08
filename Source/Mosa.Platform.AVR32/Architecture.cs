@@ -181,6 +181,7 @@ namespace Mosa.Platform.AVR32
 					new IRTransformationStage(),
 					//new TweakTransformationStage(),
 					//new MemToMemConversionStage(),
+                    new ConstantTransformationStage(),
 					new FinalTtransformationStage()
 				});
 
