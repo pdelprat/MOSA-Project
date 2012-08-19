@@ -16,7 +16,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class LdstrInstruction : BaseInstruction
+	public sealed class LdstrInstruction : BaseCILInstruction
 	{
 		#region Construction
 
@@ -47,7 +47,7 @@ namespace Mosa.Compiler.Framework.CIL
 			// Set the result
 			ctx.TokenType = ((HeapIndexToken)decoder.DecodeInt()) | HeapIndexToken.UserString;
 
-			ctx.Result = decoder.Compiler.CreateTemporary(BuiltInSigType.String);
+			ctx.Result = decoder.Compiler.CreateVirtualRegister(BuiltInSigType.String);
 		}
 
 		/// <summary>

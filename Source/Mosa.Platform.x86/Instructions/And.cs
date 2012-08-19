@@ -8,9 +8,7 @@
  */
 
 using System;
-
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -40,16 +38,16 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if (destination is RegisterOperand)
+			if (destination.IsRegister)
 			{
-				if (source is MemoryOperand) return R_M;
-				if (source is RegisterOperand) return R_R;
-				if (source is ConstantOperand) return R_C;
+				if (source.IsMemoryAddress) return R_M;
+				if (source.IsRegister) return R_R;
+				if (source.IsConstant) return R_C;
 			}
-			else if (destination is MemoryOperand)
+			else if (destination.IsMemoryAddress)
 			{
-				if (source is RegisterOperand) return M_R;
-				if (source is ConstantOperand) return M_C;
+				if (source.IsRegister) return M_R;
+				if (source.IsConstant) return M_C;
 			}
 
 			throw new ArgumentException(@"No opcode for operand type.");

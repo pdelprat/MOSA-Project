@@ -47,7 +47,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx"></param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
@@ -111,7 +111,7 @@ namespace Mosa.Compiler.Framework.CIL
 					throw new NotSupportedException(@"Overflow checking conversions not supported.");
 			}
 
-			ctx.Result = compiler.CreateTemporary(resultType);
+			ctx.Result = compiler.CreateVirtualRegister(resultType);
 		}
 
 		/// <summary>

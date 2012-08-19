@@ -10,7 +10,6 @@
 using System;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -21,8 +20,7 @@ namespace Mosa.Platform.x86.Instructions
 	{
 
 		#region Data Members
-
-		private static readonly OpCode R_L = new OpCode(new byte[] { 0xF2, 0x0F, 0x10 });
+		
 		private static readonly OpCode R_M = new OpCode(new byte[] { 0xF2, 0x0F, 0x10 });
 		private static readonly OpCode R_R = new OpCode(new byte[] { 0xF2, 0x0F, 0x10 });
 		private static readonly OpCode M_R = new OpCode(new byte[] { 0xF2, 0x0F, 0x11 });
@@ -48,10 +46,9 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if ((destination is RegisterOperand) && (source is LabelOperand)) return R_L;
-			if ((destination is RegisterOperand) && (source is MemoryOperand)) return R_M;
-			if ((destination is RegisterOperand) && (source is RegisterOperand)) return R_R;
-			if ((destination is MemoryOperand) && (source is RegisterOperand)) return M_R;
+			if ((destination.IsRegister) && (source.IsMemoryAddress)) return R_M;
+			if ((destination.IsRegister) && (source.IsRegister)) return R_R;
+			if ((destination.IsMemoryAddress) && (source.IsRegister)) return M_R;
 
 			throw new ArgumentException(@"No opcode for operand type. [" + destination.GetType() + ", " + source.GetType() + ")");
 		}

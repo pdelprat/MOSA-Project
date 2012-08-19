@@ -10,13 +10,11 @@
 
 using System;
 using System.Diagnostics;
-
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
+using Mosa.Compiler.Framework.IR;
 using Mosa.Compiler.Framework.Platform;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
-using IR = Mosa.Compiler.Framework.IR;
 
 namespace Mosa.Platform.AVR32
 {
@@ -26,7 +24,7 @@ namespace Mosa.Platform.AVR32
 	/// <remarks>
 	/// This transformation stage transforms IR instructions into their equivalent X86 sequences.
 	/// </remarks>
-	public sealed class IRTransformationStage : BaseTransformationStage, IR.IIRVisitor, IMethodCompilerStage, IPlatformStage
+	public sealed class IRTransformationStage : BaseTransformationStage, IIRVisitor, IMethodCompilerStage, IPlatformStage
 	{
 
 		private int stackSize;
@@ -37,7 +35,7 @@ namespace Mosa.Platform.AVR32
 		/// Setup stage specific processing on the compiler context.
 		/// </summary>
 		/// <param name="methodCompiler">The compiler context to perform processing in.</param>
-		void IMethodCompilerStage.Setup(IMethodCompiler methodCompiler)
+		void IMethodCompilerStage.Setup(BaseMethodCompiler methodCompiler)
 		{
 			base.Setup(methodCompiler);
 
@@ -56,90 +54,62 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for AddSInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.AddSInstruction(Context context)
+		void IIRVisitor.AddSigned(Context context)
 		{
-            Operand destination = context.Result;
-            Operand operand1 = context.Operand1;
-            Operand operand2 = context.Operand2;
-
-            if (operand2 != null)
-            {
-                RegisterOperand r8 = new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8);
-                RegisterOperand r9 = new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9);
-                RegisterOperand r10 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R10);
-
-                if (operand2 is ConstantOperand)
-                    context.SetInstruction(Instruction.MovInstruction, r9, operand2);
-                else
-                    context.SetInstruction(Instruction.LdInstruction, r9, operand2);
-                if (operand1 is ConstantOperand)
-                    context.AppendInstruction(Instruction.MovInstruction, r8, operand1);
-                else
-                    context.AppendInstruction(Instruction.LdInstruction, r8, operand1);
-                context.AppendInstruction(Instruction.AddInstruction, r8, r9);
-                context.AppendInstruction(Instruction.AddInstruction, r10, r8);
-                context.AppendInstruction(Instruction.StInstruction, destination, r10);
-            }
-            else
-            {
-                // TODO:
-            }
 		}
 
 		/// <summary>
 		/// Visitation function for AddUInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.AddUInstruction(Context context)
+		void IIRVisitor.AddUnsigned(Context context)
 		{
 			// FIXME: Float or Int64 not supported
 			Operand result = context.Result;
 			Operand operand = context.Operand1;
 
-			if ((result is RegisterOperand) && (operand is ConstantOperand))
+			if ((result.IsRegister) && (operand.IsConstant))
 			{
-                RegisterOperand r8 = new RegisterOperand(operand.Type, GeneralPurposeRegister.R8);
-                context.SetInstruction(Instruction.MovInstruction, r8, operand);
-				context.AppendInstruction(Instruction.AddInstruction, result, r8);
+				context.SetInstruction(AVR32.Add, result, operand);
 			}
 			else
-				if ((result is MemoryOperand) && (operand is ConstantOperand))
+				if ((result.IsMemoryAddress) && (operand.IsConstant))
 				{
 
 				}
 				else
-					if ((result is RegisterOperand) && (operand is MemoryOperand))
+					if ((result.IsRegister) && (operand.IsMemoryAddress))
 					{
 
 					}
 					else
-						if ((result is RegisterOperand) && (operand is RegisterOperand))
+						if ((result.IsRegister) && (operand.IsRegister))
 						{
 
 						}
 						else
-							if ((result is MemoryOperand) && (operand is RegisterOperand))
+							if ((result.IsMemoryAddress) && (operand.IsRegister))
 							{
 
 							}
 							else
-							if ((result is MemoryOperand) && (context.Operand1 is MemoryOperand))
-							{
-								RegisterOperand r8 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-								RegisterOperand r9 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
+								if ((result.IsMemoryAddress) && (context.Operand1.IsMemoryAddress))
+								{
+									Operand r8 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+									Operand r9 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
 
-								context.SetInstruction(Instruction.LdInstruction, r8, result);
-								context.AppendInstruction(Instruction.LdInstruction, r9, operand);
-								context.AppendInstruction(Instruction.AddInstruction, r8, r9);
-								context.AppendInstruction(Instruction.StInstruction, result, r8);
-							}
+									context.SetInstruction(AVR32.Ld, r8, result);
+									context.AppendInstruction(AVR32.Ld, r9, operand);
+									context.AppendInstruction(AVR32.Add, r8, r9);
+									context.AppendInstruction(AVR32.St, result, r8);
+								}
 		}
 
 		/// <summary>
 		/// Visitation function for AddFInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.AddFInstruction(Context context)
+		void IIRVisitor.AddFloat(Context context)
 		{
 		}
 
@@ -147,7 +117,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for DivFInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.DivFInstruction(Context context)
+		void IIRVisitor.DivFloat(Context context)
 		{
 		}
 
@@ -155,17 +125,15 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for DivSInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.DivSInstruction(Context context)
+		void IIRVisitor.DivSigned(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Addresses the of instruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.AddressOfInstruction(Context context)
+		void IIRVisitor.AddressOf(Context context)
 		{
 		}
 
@@ -173,7 +141,7 @@ namespace Mosa.Platform.AVR32
 		/// Arithmetic the shift right instruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ArithmeticShiftRightInstruction(Context context)
+		void IIRVisitor.ArithmeticShiftRight(Context context)
 		{
 		}
 
@@ -181,83 +149,49 @@ namespace Mosa.Platform.AVR32
 		/// Floating point compare instruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.FloatingPointCompareInstruction(Context context)
+		void IIRVisitor.FloatCompare(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Visitation function for IntegerCompareBranchInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.IntegerCompareBranchInstruction(Context context)
+		void IIRVisitor.IntegerCompareBranch(Context context)
 		{
-			IBranch branch = context.Branch;
+			int target = context.BranchTargets[0];
 			var condition = context.ConditionCode;
 			var operand1 = context.Operand1;
 			var operand2 = context.Operand2;
 
-			// FIXME: Temporary patch
-			context.ReplaceInstructionOnly(Instruction.NopInstruction);
-			if (operand1 is MemoryOperand)
-			{
-				context.AppendInstruction(Instruction.LdInstruction, new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8), operand1);
-				operand1 = context.Result;
-			}
-			if (operand2 is MemberOperand)
-			{
-				context.AppendInstruction(Instruction.LdInstruction, new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9), operand2);
-				operand2 = context.Operand1;
-			}
-			if (operand1 is RegisterOperand && (operand2 is RegisterOperand || operand2 is ConstantOperand))
-			{
-				context.AppendInstruction(Instruction.CpInstruction, operand1, operand2);
-			}
-
-			context.AppendInstruction(Instruction.BranchInstruction, condition);
-			context.SetBranch(branch.Targets[0]);
+			context.SetInstruction(AVR32.Cp, operand1, operand2);
+			context.AppendInstruction(AVR32.Branch, condition);
+			context.SetBranch(target);
 		}
 
 		/// <summary>
 		/// Visitation function for IntegerCompareInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.IntegerCompareInstruction(Context context)
+		void IIRVisitor.IntegerCompare(Context context)
 		{
 			var condition = context.ConditionCode;
 			var resultOperand = context.Result;
 			var operand1 = context.Operand1;
 			var operand2 = context.Operand2;
 
-			// FIXME: Temporary patch
-			context.ReplaceInstructionOnly(Instruction.NopInstruction);
-			if (operand1 is MemoryOperand)
-			{
-				context.AppendInstruction(Instruction.LdInstruction, new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8), operand1);
-				operand1 = context.Result;
-			}
-			if (operand2 is MemberOperand)
-			{
-				context.AppendInstruction(Instruction.LdInstruction, new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9), operand2);
-				operand2 = context.Operand1;
-			}
-			if (operand1 is RegisterOperand && (operand2 is RegisterOperand || operand2 is ConstantOperand))
-			{
-				context.AppendInstruction(Instruction.CpInstruction, operand1, operand2);
-			}
+			context.SetInstruction(AVR32.Cp, operand1, operand2);
 
 			if (resultOperand != null)
 			{
-				RegisterOperand r8 = new RegisterOperand(BuiltInSigType.Byte, GeneralPurposeRegister.R8);
+				Operand r8 = Operand.CreateCPURegister(BuiltInSigType.Byte, GeneralPurposeRegister.R8);
 
-				// TODO:
 				//if (IsUnsigned(resultOperand))
-					//context.AppendInstruction(Instruction.SetccInstruction, GetUnsignedConditionCode(condition), r8);
+				//context.AppendInstruction(Instruction.Setcc, GetUnsignedConditionCode(condition), r8);
 				//else
-				  //  context.AppendInstruction(Instruction.SetccInstruction, condition, r8);
+				//  context.AppendInstruction(Instruction.Setcc, condition, r8);
 
-				//context.AppendInstruction(Instruction.MovzxInstruction, resultOperand, r8);
+				//context.AppendInstruction(Instruction.Movzx, resultOperand, r8);
 			}
 		}
 
@@ -265,92 +199,105 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for JmpInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.JmpInstruction(Context context)
+		void IIRVisitor.Jmp(Context context)
 		{
-			context.ReplaceInstructionOnly(Instruction.RjmpInstruction);
+			context.ReplaceInstructionOnly(AVR32.Rjmp);
 		}
 
 		/// <summary>
 		/// Visitation function for LoadInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.LoadInstruction(Context context)
+		void IIRVisitor.Load(Context context)
 		{
-			RegisterOperand r8 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R8);
-			RegisterOperand r9 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
+			Operand r8 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R8);
 			Operand result = context.Result;
 			Operand operand = context.Operand1;
 			Operand offset = context.Operand2;
-			ConstantOperand constantOffset = offset as ConstantOperand;
 			IntPtr offsetPtr = IntPtr.Zero;
 
-			context.SetInstruction(Instruction.LdInstruction, r8, operand);
-			if (constantOffset != null)
+			context.SetInstruction(AVR32.Ld, r8, operand);
+			if (offset.IsConstant)
 			{
-				offsetPtr = new IntPtr(Convert.ToInt64(constantOffset.Value));
+				offsetPtr = new IntPtr(Convert.ToInt64(offset.Value));
 			}
 			else
 			{
-				context.AppendInstruction(Instruction.MovInstruction, r9, offset);
-				context.AppendInstruction(Instruction.AddInstruction, r8, r9);
+				context.AppendInstruction(AVR32.Mov, r8, offset);
+				context.AppendInstruction(AVR32.Add, r8, r8);
 			}
 
-			context.AppendInstruction(Instruction.LdInstruction, r9, new MemoryOperand(r8.Type, GeneralPurposeRegister.R8, offsetPtr));
-			context.AppendInstruction(Instruction.StInstruction, result, r9);
+			context.AppendInstruction(AVR32.Ld, result, Operand.CreateMemoryAddress(r8.Type, GeneralPurposeRegister.R8, offsetPtr));
+		}
+
+		/// <summary>
+		/// Visitation function for Load Zero Extended.
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void IIRVisitor.LoadZeroExtended(Context context)
+		{
+			// TODO
+		}
+
+		/// <summary>
+		/// Visitation function for Load Sign Extended.
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void IIRVisitor.LoadSignExtended(Context context)
+		{
+			// TODO
 		}
 
 		/// <summary>
 		/// Visitation function for LogicalAndInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.LogicalAndInstruction(Context context)
+		void IIRVisitor.LogicalAnd(Context context)
 		{
 			// FIXME: Float or Int64 not supported
 			Operand result = context.Result;
 			Operand operand = context.Operand1;
 
-			if ((result is RegisterOperand) && (operand is ConstantOperand))
+			if ((result.IsRegister) && (operand.IsConstant))
 			{
-                RegisterOperand r8 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-                context.SetInstruction(Instruction.MovInstruction, r8, operand);
-				context.AppendInstruction(Instruction.AndInstruction, result, r8);
+				context.SetInstruction(AVR32.And, result, operand);
 			}
 			else
-				if ((result is MemoryOperand) && (operand is ConstantOperand))
+				if ((result.IsMemoryAddress) && (operand.IsConstant))
 				{
-					RegisterOperand r8 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-					RegisterOperand r9 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
+					Operand r8 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+					Operand r9 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
 
-					context.SetInstruction(Instruction.LdInstruction, r8, result);
-					context.SetInstruction(Instruction.MovInstruction, r9, operand);
-					context.AppendInstruction(Instruction.AndInstruction, r8, r9);
-					context.AppendInstruction(Instruction.StInstruction, result, r8);
+					context.SetInstruction(AVR32.Ld, r8, result);
+					context.SetInstruction(AVR32.Mov, r9, operand);
+					context.AppendInstruction(AVR32.And, r8, r9);
+					context.AppendInstruction(AVR32.St, result, r8);
 				}
 				else
-					if ((result is RegisterOperand) && (operand is MemoryOperand))
+					if ((result.IsRegister) && (operand.IsMemoryAddress))
 					{
 
 					}
 					else
-						if ((result is RegisterOperand) && (operand is RegisterOperand))
+						if ((result.IsRegister) && (operand.IsRegister))
 						{
 
 						}
 						else
-							if ((result is MemoryOperand) && (operand is RegisterOperand))
+							if ((result.IsMemoryAddress) && (operand.IsRegister))
 							{
 
 							}
 							else
-								if ((result is MemoryOperand) && (context.Operand1 is MemoryOperand))
+								if ((result.IsMemoryAddress) && (context.Operand1.IsMemoryAddress))
 								{
-									RegisterOperand r8 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-									RegisterOperand r9 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
+									Operand r8 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+									Operand r9 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
 
-									context.SetInstruction(Instruction.LdInstruction, r8, result);
-									context.AppendInstruction(Instruction.LdInstruction, r9, operand);
-									context.AppendInstruction(Instruction.AndInstruction, r8, r9);
-									context.AppendInstruction(Instruction.StInstruction, result, r8);
+									context.SetInstruction(AVR32.Ld, r8, result);
+									context.AppendInstruction(AVR32.Ld, r9, operand);
+									context.AppendInstruction(AVR32.And, r8, r9);
+									context.AppendInstruction(AVR32.St, result, r8);
 								}
 		}
 
@@ -358,7 +305,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for LogicalOrInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.LogicalOrInstruction(Context context)
+		void IIRVisitor.LogicalOr(Context context)
 		{
 		}
 
@@ -366,7 +313,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for LogicalXorInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.LogicalXorInstruction(Context context)
+		void IIRVisitor.LogicalXor(Context context)
 		{
 		}
 
@@ -374,7 +321,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for LogicalNotInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.LogicalNotInstruction(Context context)
+		void IIRVisitor.LogicalNot(Context context)
 		{
 		}
 
@@ -382,7 +329,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for MoveInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.MoveInstruction(Context context)
+		void IIRVisitor.Move(Context context)
 		{
 			Operand result = context.Result;
 			Operand operand = context.Operand1;
@@ -390,102 +337,65 @@ namespace Mosa.Platform.AVR32
 
 			if (context.Result.StackType == StackTypeCode.F)
 			{
-                Debug.Assert(context.Operand1.StackType == StackTypeCode.F, @"Move can't convert to floating point type.");
-                if (context.Result.Type.Type == context.Operand1.Type.Type)
-                {
-                    if (context.Result.Type.Type == CilElementType.R4)
-                    {
-                        //TODO:
-                        context.SetInstruction(Instruction.NopInstruction);
-                    }
-                    else if (context.Result.Type.Type == CilElementType.R8)
-                    {
-                        //TODO:
-                        context.SetInstruction(Instruction.NopInstruction);
-                    }   
-                }
-                else if (context.Result.Type.Type == CilElementType.R8)
-                {
-                    // TODO:
-                    context.SetInstruction(Instruction.NopInstruction);
-                }
-                else if (context.Result.Type.Type == CilElementType.R4)
-                {
-                    // TODO:
-                    context.SetInstruction(Instruction.NopInstruction);
-                }
+				// TODO:
 			}
-			else
+			else if (context.Result.IsMemoryAddress && context.Operand1.IsMemoryAddress)
 			{
-				if (context.Result is MemoryOperand && context.Operand1 is MemoryOperand)
-				{
-					RegisterOperand load = new RegisterOperand(BuiltInSigType.IntPtr, GeneralPurposeRegister.R9);
+				Operand load = Operand.CreateCPURegister(BuiltInSigType.IntPtr, GeneralPurposeRegister.R9);
 
-					context.SetInstruction(Instruction.LdInstruction, load, operand);
-					context.AppendInstruction(Instruction.StInstruction, result, load);
+				context.SetInstruction(AVR32.Ld, load, operand);
+				context.AppendInstruction(AVR32.St, result, load);
 
-					//if (!Is32Bit(operand) && IsSigned(operand))
-					//    context.SetInstruction(Instruction.MovsxInstruction, load, operand);
-					//else if (!Is32Bit(operand) && IsUnsigned(operand))
-					//    context.SetInstruction(Instruction.MovzxInstruction, load, operand);
-					//else
-					//    context.SetInstruction(Instruction.MovInstruction, load, operand);
+				//if (!Is32Bit(operand) && IsSigned(operand))
+				//    context.SetInstruction(Instruction.Movsx, load, operand);
+				//else if (!Is32Bit(operand) && IsUnsigned(operand))
+				//    context.SetInstruction(Instruction.Movzx, load, operand);
+				//else
+				//    context.SetInstruction(Instruction.Mov, load, operand);
 
-					//context.AppendInstruction(Instruction.MovInstruction, result, store);
-				}
-				else
-					if (context.Result is RegisterOperand && context.Operand1 is MemoryOperand)
-					{
-						context.ReplaceInstructionOnly(Instruction.LdInstruction);
-					}
-					else
-						if (context.Result is MemoryOperand && context.Operand1 is RegisterOperand)
-						{
-							context.SetInstruction(Instruction.StInstruction, result, operand);
-						}
-						else
-							if (context.Result is RegisterOperand && context.Operand1 is RegisterOperand)
-							{
-								context.ReplaceInstructionOnly(Instruction.MovInstruction);
-							}
-							else
-								if (context.Result is MemoryOperand && context.Operand1 is ConstantOperand)
-								{
-									RegisterOperand load = new RegisterOperand(BuiltInSigType.IntPtr, GeneralPurposeRegister.R9);
-
-									context.SetInstruction(Instruction.MovInstruction, load, operand);
-									context.AppendInstruction(Instruction.StInstruction, result, load);
-								}
-								else
-									if (context.Result is MemoryOperand && context.Operand1 is SymbolOperand)
-									{
-										//TODO:
-                                        context.SetInstruction(Instruction.NopInstruction);
-									}
-									else
-										if (context.Result is MemoryOperand && context.Operand1 is LabelOperand)
-										{
-                                            //TODO:
-                                            context.SetInstruction(Instruction.NopInstruction);
-										}
-
+				//context.AppendInstruction(Instruction.Mov, result, store);
 			}
+			else if (context.Result.IsRegister && context.Operand1.IsMemoryAddress)
+			{
+				context.ReplaceInstructionOnly(AVR32.Ld);
+			}
+			else if (context.Result.IsMemoryAddress && context.Operand1.IsRegister)
+			{
+				context.SetInstruction(AVR32.St, result, operand);
+			}
+			else if (context.Result.IsRegister && context.Operand1.IsRegister)
+			{
+				context.ReplaceInstructionOnly(AVR32.Mov);
+			}
+			else if (context.Result.IsMemoryAddress && context.Operand1.IsConstant)
+			{
+				Operand load = Operand.CreateCPURegister(BuiltInSigType.IntPtr, GeneralPurposeRegister.R9);
+
+				context.SetInstruction(AVR32.Mov, load, operand);
+				context.AppendInstruction(AVR32.St, result, load);
+			}
+			else if (context.Result.IsMemoryAddress && context.Operand1.IsSymbol)
+			{
+				//context.SetInstruction(Instruction.St, result, operand);
+			}
+
+
 		}
 
 		/// <summary>
 		/// Visitation function for PrologueInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.PrologueInstruction(Context context)
+		void IIRVisitor.Prologue(Context context)
 		{
 			SigType I = BuiltInSigType.Int32;
-			RegisterOperand r8 = new RegisterOperand(I, GeneralPurposeRegister.R8);
-			RegisterOperand r12 = new RegisterOperand(I, GeneralPurposeRegister.R12);
-			RegisterOperand r10 = new RegisterOperand(I, GeneralPurposeRegister.R10);
-			RegisterOperand r11 = new RegisterOperand(I, GeneralPurposeRegister.R11);
-			RegisterOperand sp = new RegisterOperand(I, GeneralPurposeRegister.SP);
-			RegisterOperand r7 = new RegisterOperand(I, GeneralPurposeRegister.R7);
-			RegisterOperand r6 = new RegisterOperand(I, GeneralPurposeRegister.R6);
+			Operand r8 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R8);
+			Operand r12 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R12);
+			Operand r10 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R10);
+			Operand r11 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R11);
+			Operand sp = Operand.CreateCPURegister(I, GeneralPurposeRegister.SP);
+			Operand r7 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R7);
+			Operand r6 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R6);
 
 			/* 
 			 * If you want to stop at the header of an emitted function, just set breakFlag 
@@ -500,44 +410,44 @@ namespace Mosa.Platform.AVR32
 			{
 				// int 3
 				// TODO:
-				//context.SetInstruction(Instruction.BreakInstruction);
-				context.AppendInstruction(Instruction.NopInstruction);
+				//context.SetInstruction(Instruction.Break);
+				context.AppendInstruction(AVR32.Nop);
 
 				// Uncomment this line to enable breakpoints within Bochs
 				//context.AppendInstruction(CPUx86.Instruction.BochsDebug);
 			}
 
 			// push ebp
-			context.SetInstruction(Instruction.PushInstruction, null, r11);
+			context.SetInstruction(AVR32.Push, null, r11);
 			// mov ebp, esp
-			context.AppendInstruction(Instruction.MovInstruction, r11, sp);
+			context.AppendInstruction(AVR32.Mov, r11, sp);
 			// sub esp, localsSize
-			context.AppendInstruction(Instruction.SubInstruction, sp, new ConstantOperand(I, -stackSize));
+			context.AppendInstruction(AVR32.Sub, sp, Operand.CreateConstant(I, -stackSize));
 			// push ebx
-			context.AppendInstruction(Instruction.PushInstruction, null, r12);
+			context.AppendInstruction(AVR32.Push, null, r12);
 
 			// Initialize all locals to zero
-			context.AppendInstruction(Instruction.PushInstruction, null, r7);
-			context.AppendInstruction(Instruction.MovInstruction, r7, sp);
-			context.AppendInstruction(Instruction.PushInstruction, null, r10);
+			context.AppendInstruction(AVR32.Push, null, r7);
+			context.AppendInstruction(AVR32.Mov, r7, sp);
+			context.AppendInstruction(AVR32.Push, null, r10);
 
-			//context.AppendInstruction(Instruction.AddInstruction, r7, new ConstantOperand(I, 8));
-			context.AppendInstruction(Instruction.MovInstruction, r6, new ConstantOperand(I, 8));
-			context.AppendInstruction(Instruction.AddInstruction, r7, r6);
-			context.AppendInstruction(Instruction.MovInstruction, r10, new ConstantOperand(I, -(int)(stackSize >> 2)));
-			context.AppendInstruction(Instruction.EorInstruction, r8, r8);
+			//context.AppendInstruction(Instruction.Add, r7, Operand.CreateConstant(I, 8));
+			context.AppendInstruction(AVR32.Mov, r6, Operand.CreateConstant(I, 8));
+			context.AppendInstruction(AVR32.Add, r7, r6);
+			context.AppendInstruction(AVR32.Mov, r10, Operand.CreateConstant(I, -(int)(stackSize >> 2)));
+			context.AppendInstruction(AVR32.Eor, r8, r8);
 			// TODO:
-			//context.AppendInstruction(Instruction.RepInstruction);
-			//context.AppendInstruction(Instruction.StosdInstruction);
-			context.AppendInstruction(Instruction.PopInstruction, r10);
-			context.AppendInstruction(Instruction.PopInstruction, r7);
+			//context.AppendInstruction(Instruction.Rep);
+			//context.AppendInstruction(Instruction.Stosd);
+			context.AppendInstruction(AVR32.Pop, r10);
+			context.AppendInstruction(AVR32.Pop, r7);
 
 			// Save EDX for int32 return values (or do not save EDX for non-int64 return values)
 			if (methodCompiler.Method.Signature.ReturnType.Type != CilElementType.I8 &&
 				methodCompiler.Method.Signature.ReturnType.Type != CilElementType.U8)
 			{
 				// push edx
-				context.AppendInstruction(Instruction.PushInstruction, null, new RegisterOperand(I, GeneralPurposeRegister.R9));
+				context.AppendInstruction(AVR32.Push, null, Operand.CreateCPURegister(I, GeneralPurposeRegister.R9));
 			}
 		}
 
@@ -545,57 +455,57 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for EpilogueInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.EpilogueInstruction(Context context)
+		void IIRVisitor.Epilogue(Context context)
 		{
 			SigType I = BuiltInSigType.IntPtr;
-			RegisterOperand r12 = new RegisterOperand(I, GeneralPurposeRegister.R12);
-			RegisterOperand r9 = new RegisterOperand(I, GeneralPurposeRegister.R9);
-			RegisterOperand r11 = new RegisterOperand(I, GeneralPurposeRegister.R11);
-			RegisterOperand sp = new RegisterOperand(I, GeneralPurposeRegister.SP);
-			RegisterOperand r7 = new RegisterOperand(I, GeneralPurposeRegister.R7);
+			Operand r12 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R12);
+			Operand r9 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R9);
+			Operand r11 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R11);
+			Operand sp = Operand.CreateCPURegister(I, GeneralPurposeRegister.SP);
+			Operand r7 = Operand.CreateCPURegister(I, GeneralPurposeRegister.R7);
 
 			// Load EDX for int32 return values
 			if (methodCompiler.Method.Signature.ReturnType.Type != CilElementType.I8 &&
 				methodCompiler.Method.Signature.ReturnType.Type != CilElementType.U8)
 			{
 				// pop edx
-				context.SetInstruction(Instruction.PopInstruction, r9);
-				context.AppendInstruction(Instruction.NopInstruction);
+				context.SetInstruction(AVR32.Pop, r9);
+				context.AppendInstruction(AVR32.Nop);
 			}
 
 			// pop ebx
-			context.SetInstruction(Instruction.PopInstruction, r12);
+			context.SetInstruction(AVR32.Pop, r12);
 			// add esp, -localsSize
-			context.AppendInstruction(Instruction.MovInstruction, r7, new ConstantOperand(I, -stackSize));
-			context.AppendInstruction(Instruction.AddInstruction, sp, r7);
+			context.AppendInstruction(AVR32.Mov, r7, Operand.CreateConstant(I, -stackSize));
+			context.AppendInstruction(AVR32.Add, sp, r7);
 			// pop ebp
-			context.AppendInstruction(Instruction.PopInstruction, r11);
+			context.AppendInstruction(AVR32.Pop, r11);
 			// ret
-			context.AppendInstruction(Instruction.RetInstruction);
+			context.AppendInstruction(AVR32.Ret);
 		}
 
 		/// <summary>
 		/// Visitation function for ReturnInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ReturnInstruction(Context context)
+		void IIRVisitor.Return(Context context)
 		{
-			if (context.Branch == null)
+			if (context.BranchTargets == null)
 			{
 				// To return from an internal method call (usually from within a finally or exception clause)
-				context.SetInstruction(Instruction.RetInstruction);
+				context.SetInstruction(AVR32.Ret);
 				return;
 			}
 
 			if (context.Operand1 != null)
 			{
 				callingConvention.MoveReturnValue(context, context.Operand1);
-				context.AppendInstruction(Instruction.RjmpInstruction);
+				context.AppendInstruction(AVR32.Rjmp);
 				context.SetBranch(Int32.MaxValue);
 			}
 			else
 			{
-				context.SetInstruction(Instruction.JmpInstruction);
+				context.SetInstruction(AVR32.Jmp);
 				context.SetBranch(Int32.MaxValue);
 			}
 		}
@@ -604,17 +514,15 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for ShiftLeftInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ShiftLeftInstruction(Context context)
+		void IIRVisitor.ShiftLeft(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Visitation function for ShiftRightInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ShiftRightInstruction(Context context)
+		void IIRVisitor.ShiftRight(Context context)
 		{
 		}
 
@@ -622,82 +530,53 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for StoreInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.StoreInstruction(Context context)
+		void IIRVisitor.Store(Context context)
 		{
 			Operand destination = context.Result;
-			Operand offset = context.Operand1;
-			Operand value = context.Operand2;
+			Operand offset = context.Operand2;
+			Operand value = context.Operand3;
 
-			ConstantOperand constantOffset = offset as ConstantOperand;
+			Operand r8 = Operand.CreateCPURegister(destination.Type, GeneralPurposeRegister.R8);
+			Operand r9 = Operand.CreateCPURegister(value.Type, GeneralPurposeRegister.R9);
 
-			RegisterOperand r8 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R8);
-			RegisterOperand r9 = new RegisterOperand(value.Type, GeneralPurposeRegister.R9);
-
-			context.SetInstruction(Instruction.LdInstruction, r8, destination);
-			context.AppendInstruction(Instruction.LdInstruction, r9, value);
+			context.SetInstruction(AVR32.Ld, r8, destination);
+			context.AppendInstruction(AVR32.Ld, r9, value);
 
 			IntPtr offsetPtr = IntPtr.Zero;
-			if (constantOffset != null)
+			if (offset.IsConstant)
 			{
-				offsetPtr = new IntPtr(Convert.ToInt64(constantOffset.Value));
+				offsetPtr = new IntPtr(Convert.ToInt64(offset.Value));
 			}
 			else
 			{
-				context.AppendInstruction(Instruction.MovInstruction, r8, offset);
-				context.AppendInstruction(Instruction.AddInstruction, r8, r8);
+				context.AppendInstruction(AVR32.Mov, r8, offset);
+				context.AppendInstruction(AVR32.Add, r8, r8);
 			}
 
-			context.AppendInstruction(Instruction.StInstruction, new MemoryOperand(value.Type, GeneralPurposeRegister.R8, offsetPtr), r9);
+			context.AppendInstruction(AVR32.Ld, Operand.CreateMemoryAddress(value.Type, GeneralPurposeRegister.R8, offsetPtr), r9);
 		}
 
 		/// <summary>
 		/// Visitation function for DivUInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.DivUInstruction(Context context)
+		void IIRVisitor.DivUnsigned(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Visitation function for MulSInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.MulSInstruction(Context context)
+		void IIRVisitor.MulSigned(Context context)
 		{
-            Operand destination = context.Result;
-            Operand operand1 = context.Operand1;
-            Operand operand2 = context.Operand2;
-
-            if (operand2 != null)
-            {
-                RegisterOperand r8 = new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8);
-                RegisterOperand r9 = new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9);
-                RegisterOperand r10 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R10);
-
-                if (operand2 is ConstantOperand)
-                    context.SetInstruction(Instruction.MovInstruction, r9, operand2);
-                else
-                    context.SetInstruction(Instruction.LdInstruction, r9, operand2);
-                if (operand1 is ConstantOperand)
-                    context.AppendInstruction(Instruction.MovInstruction, r8, operand1);
-                else
-                    context.AppendInstruction(Instruction.LdInstruction, r8, operand1);
-                context.AppendInstruction(Instruction.MulInstruction, r10, r8, r9);
-                context.AppendInstruction(Instruction.StInstruction, destination, r10);
-            }
-            else
-            {
-                // TODO:
-            }
 		}
 
 		/// <summary>
 		/// Visitation function for MulFInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.MulFInstruction(Context context)
+		void IIRVisitor.MulFloat(Context context)
 		{
 		}
 
@@ -705,7 +584,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for MulUInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.MulUInstruction(Context context)
+		void IIRVisitor.MulUnsigned(Context context)
 		{
 		}
 
@@ -713,7 +592,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for SubFInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.SubFInstruction(Context context)
+		void IIRVisitor.SubFloat(Context context)
 		{
 		}
 
@@ -721,41 +600,15 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for SubSInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.SubSInstruction(Context context)
+		void IIRVisitor.SubSigned(Context context)
 		{
-            Operand destination = context.Result;
-            Operand operand1 = context.Operand1;
-            Operand operand2 = context.Operand2;
-
-            if (operand2 != null)
-            {
-                RegisterOperand r8 = new RegisterOperand(operand1.Type, GeneralPurposeRegister.R8);
-                RegisterOperand r9 = new RegisterOperand(operand2.Type, GeneralPurposeRegister.R9);
-                RegisterOperand r10 = new RegisterOperand(destination.Type, GeneralPurposeRegister.R10);
-
-                if (operand2 is ConstantOperand)
-                    context.SetInstruction(Instruction.MovInstruction, r9, operand2);
-                else
-                    context.SetInstruction(Instruction.LdInstruction, r9, operand2);
-                if (operand1 is ConstantOperand)
-                    context.AppendInstruction(Instruction.MovInstruction, r8, operand1);
-                else
-                    context.AppendInstruction(Instruction.LdInstruction, r8, operand1);
-                context.AppendInstruction(Instruction.SubInstruction, r8, r9);
-                context.AppendInstruction(Instruction.SubInstruction, r10, r8);
-                context.AppendInstruction(Instruction.StInstruction, destination, r10);
-            }
-            else
-            {
-                // TODO:
-            }
 		}
 
 		/// <summary>
 		/// Visitation function for SubUInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.SubUInstruction(Context context)
+		void IIRVisitor.SubUnsigned(Context context)
 		{
 		}
 
@@ -763,7 +616,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for RemFInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.RemFInstruction(Context context)
+		void IIRVisitor.RemFloat(Context context)
 		{
 		}
 
@@ -771,27 +624,23 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for RemSInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.RemSInstruction(Context context)
+		void IIRVisitor.RemSigned(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Visitation function for RemUInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.RemUInstruction(Context context)
+		void IIRVisitor.RemUnsigned(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Visitation function for SwitchInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.SwitchInstruction(Context context)
+		void IIRVisitor.Switch(Context context)
 		{
 		}
 
@@ -799,7 +648,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for BreakInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.BreakInstruction(Context context)
+		void IIRVisitor.Break(Context context)
 		{
 		}
 
@@ -807,46 +656,18 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for NopInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.NopInstruction(Context context)
+		void IIRVisitor.Nop(Context context)
 		{
-			context.SetInstruction(Instruction.NopInstruction);
+			context.SetInstruction(AVR32.Nop);
 		}
 
 		/// <summary>
 		/// Visitation function for SignExtendedMoveInstruction"/> instructions.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.SignExtendedMoveInstruction(Context context)
-		{            
-			var offset = context.Operand2;
-			var type = context.Other as SigType;
-
-			if (offset != null)
-			{
-				var r8 = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-				var destination = context.Result;
-				var source = context.Operand1 as MemoryOperand;
-				var elementType = type == null ? GetElementType(source.Type) : GetElementType(type);
-				var constantOffset = offset as ConstantOperand;
-				var offsetPtr = IntPtr.Zero;
-
-				context.SetInstruction(Instruction.LdInstruction, r8, source);
-				if (constantOffset != null)
-				{
-					offsetPtr = new IntPtr(Convert.ToInt64(constantOffset.Value));
-				}
-				else
-				{
-					context.AppendInstruction(Instruction.MovInstruction, r8, offset);
-					context.AppendInstruction(Instruction.AddInstruction, r8, r8);
-				}
-
-				context.AppendInstruction(Instruction.LdsInstruction, destination, new MemoryOperand(elementType, GeneralPurposeRegister.R8, offsetPtr));
-			}
-			else
-			{
-				context.ReplaceInstructionOnly(Instruction.LdsInstruction);
-			}
+		void IIRVisitor.SignExtendedMove(Context context)
+		{
+			context.ReplaceInstructionOnly(AVR32.Lds);
 		}
 
 		private static SigType GetElementType(SigType sigType)
@@ -867,15 +688,15 @@ namespace Mosa.Platform.AVR32
 		}
 
 		/// <summary>
-		/// Visitation function for CallInstruction"/> instructions.
+		/// Visitation function for CallInstruction instructions.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.CallInstruction(Context context)
+		void IIRVisitor.Call(Context context)
 		{
-			if (context.OperandCount == 0 && context.Branch != null)
+			if (context.OperandCount == 0 && context.BranchTargets != null)
 			{
 				// inter-method call; usually for exception processing
-				context.ReplaceInstructionOnly(Instruction.RcallInstruction);
+				context.ReplaceInstructionOnly(AVR32.Rcall);
 			}
 			else
 			{
@@ -884,91 +705,36 @@ namespace Mosa.Platform.AVR32
 		}
 
 		/// <summary>
-		/// Visitation function for ZeroExtendedMoveInstruction"/> instructions.
+		/// Visitation function for intrinsic the method call.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ZeroExtendedMoveInstruction(Context context)
+		void IIRVisitor.IntrinsicMethodCall(Context context)
 		{
-			Operand offset = context.Operand2;
-			if (offset != null)
-			{
-				RegisterOperand r8 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R8);
-				Operand result = context.Result;
-				Operand source = context.Operand1;
-				SigType elementType = GetElementType(source.Type);
-				ConstantOperand constantOffset = offset as ConstantOperand;
-				IntPtr offsetPtr = IntPtr.Zero;
+			// TODO
+		}
 
-				if (source is ConstantOperand)
-				  context.SetInstruction(Instruction.MovInstruction, r8, source);
-				else
-					context.SetInstruction(Instruction.LdInstruction, r8, source);
-				if (constantOffset != null)
-				{
-					offsetPtr = new IntPtr(Convert.ToInt64(constantOffset.Value));
-				}
-
-				if (elementType.Type == CilElementType.Char ||
-					elementType.Type == CilElementType.U1 ||
-					elementType.Type == CilElementType.U2)
-				{
-					if (offset is ConstantOperand)
-						context.AppendInstruction(Instruction.MovInstruction, r8, offset);
-					else
-						context.AppendInstruction(Instruction.LdInstruction, r8, offset);
-					context.AppendInstruction(Instruction.AddInstruction, r8, r8);
-				}
-				//context.AppendInstruction(Instruction.MovzxInstruction, result, new MemoryOperand(elementType, GeneralPurposeRegister.R8, offsetPtr));
-			}
-			else
-			{
-                RegisterOperand r8 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R8);
-                Operand result = context.Result;
-                Operand source = context.Operand1;
-                SigType elementType = GetElementType(source.Type);
-                ConstantOperand constantOffset = offset as ConstantOperand;
-                IntPtr offsetPtr = IntPtr.Zero;
-
-                if (source is ConstantOperand)
-                    context.SetInstruction(Instruction.MovInstruction, r8, source);
-                else
-                {
-                    if (elementType.Type == CilElementType.Char ||
-                        elementType.Type == CilElementType.U1)
-                    {
-                        context.SetInstruction(Instruction.LdubInstruction, r8, source);
-                    }
-                    if (elementType.Type == CilElementType.U2)
-                    {
-                        context.SetInstruction(Instruction.LduhInstruction, r8, source);
-                    }
-                    if (elementType.Type == CilElementType.I4)
-                    {
-                        //TODO:
-                        context.SetInstruction(Instruction.NopInstruction);
-                    }
-                }
-
-                //TEMP
-                //context.AppendInstruction(Instruction.StInstruction, result, r8);
-			}
+		/// <summary>
+		/// Visitation function for ZeroExtendedMoveInstruction instructions.
+		/// </summary>
+		/// <param name="context">The context.</param>
+		void IIRVisitor.ZeroExtendedMove(Context context)
+		{
+			//context.ReplaceInstructionOnly(AVR32.Mov);
 		}
 
 		/// <summary>
 		/// Visitation function for FloatingPointToIntegerConversionInstruction"/> instructions.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.FloatingPointToIntegerConversionInstruction(Context context)
+		void IIRVisitor.FloatToIntegerConversion(Context context)
 		{
-            //TODO:
-            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
 		/// Visitation function for ThrowInstruction.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ThrowInstruction(Context context)
+		void IIRVisitor.Throw(Context context)
 		{
 		}
 
@@ -976,7 +742,7 @@ namespace Mosa.Platform.AVR32
 		/// Visitation function for ExceptionPrologueInstruction"/> instructions.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.ExceptionPrologueInstruction(Context context)
+		void IIRVisitor.ExceptionPrologue(Context context)
 		{
 		}
 
@@ -985,16 +751,16 @@ namespace Mosa.Platform.AVR32
 		#region IIRVisitor - Unused
 
 		/// <summary>
-		/// Visitation function for IntegerToFloatingPointConversionInstruction.
+		/// Visitation function for IntegerToFloatingPointConversion.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.IntegerToFloatingPointConversionInstruction(Context context) { }
+		void IIRVisitor.IntegerToFloatConversion(Context context) { }
 
 		/// <summary>
-		/// Visitation function for PhiInstruction"/> instructions.
+		/// Visitation function for Phi.
 		/// </summary>
 		/// <param name="context">The context.</param>
-		void IR.IIRVisitor.PhiInstruction(Context context) { }
+		void IIRVisitor.Phi(Context context) { }
 
 		#endregion // IIRVisitor - Unused
 

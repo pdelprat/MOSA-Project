@@ -55,6 +55,12 @@ namespace Mosa.Compiler.Framework
 			map |= ((ulong)1 << register.Index);
 		}
 
+		public void Set(Register[] registers)
+		{
+			foreach (Register register in registers)
+				Set(register);
+		}
+
 		public void Clear(Register register)
 		{
 			if (register == null)
@@ -81,6 +87,11 @@ namespace Mosa.Compiler.Framework
 		public void Or(RegisterBitmap bitmap64Bit)
 		{
 			map |= bitmap64Bit.map;
+		}
+
+		public void Xor(RegisterBitmap bitmap64Bit)
+		{
+			map ^= bitmap64Bit.map;
 		}
 
 		public void Not()
@@ -113,6 +124,9 @@ namespace Mosa.Compiler.Framework
 			return ((IEnumerable<int>)this).GetEnumerator();
 		}
 
-
+		public override string ToString()
+		{
+			return Convert.ToString((long)map, 2).PadLeft(64, '0');
+		}
 	}
 }

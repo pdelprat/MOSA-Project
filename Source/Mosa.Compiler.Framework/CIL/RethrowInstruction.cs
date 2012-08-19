@@ -13,7 +13,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// Intermediate representation of the IL rethrow instruction.
 	/// </summary>
-	public sealed class RethrowInstruction : BaseInstruction
+	public sealed class RethrowInstruction : BaseCILInstruction
 	{
 		#region Construction
 
@@ -39,10 +39,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.Throw; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.Throw; } }
 
 		#endregion // Properties
 

@@ -17,7 +17,7 @@ namespace Mosa.Compiler.Framework.Stages
 	/// <summary>
 	/// Base class for code generation stages.
 	/// </summary>
-	public class CodeGenerationStage : BaseMethodCompilerStage, ICodeGenerationStage, IMethodCompilerStage, IPipelineStage
+	public class CodeGenerationStage : BaseMethodCompilerStage, IMethodCompilerStage, IPipelineStage
 	{
 
 		#region Data members
@@ -78,15 +78,17 @@ namespace Mosa.Compiler.Framework.Stages
 				BlockStart(block);
 
 				for (Context context = new Context(instructionSet, block); !context.EndOfInstruction; context.GotoNext())
-					if (context.Instruction != null)
-						if (!context.Ignore)
-						{
-							IPlatformInstruction instruction = context.Instruction as IPlatformInstruction;
-							if (instruction != null)
-								instruction.Emit(context, codeEmitter);
-							else
+				{
+					if (!context.IsEmpty)
+					{
+						BasePlatformInstruction instruction = context.Instruction as BasePlatformInstruction;
+						if (instruction != null)
+							instruction.Emit(context, codeEmitter);
+						else
+							if (architecture.PlatformName != "Null")
 								Trace(InternalTrace.CompilerEvent.Error, "Missing Code Transformation: " + context.ToString());
-						}
+					}
+				}
 
 				BlockEnd(block);
 			}
@@ -98,7 +100,7 @@ namespace Mosa.Compiler.Framework.Stages
 		protected virtual void BeginGenerate()
 		{
 			codeEmitter = architecture.GetCodeEmitter();
-			codeEmitter.Initialize(methodCompiler, codeStream, methodCompiler.Linker);
+			codeEmitter.Initialize(methodCompiler, codeStream);
 		}
 
 		/// <summary>

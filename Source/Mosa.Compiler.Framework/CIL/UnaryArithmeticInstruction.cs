@@ -36,12 +36,12 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
 			// Simple result is the same type as the unary argument
-			ctx.Result = compiler.CreateTemporary(ctx.Operand1.Type);
+			ctx.Result = compiler.CreateVirtualRegister(ctx.Operand1.Type);
 		}
 
 

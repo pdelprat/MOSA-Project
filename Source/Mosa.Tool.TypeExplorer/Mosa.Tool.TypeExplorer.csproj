@@ -45,7 +45,7 @@
     <Compile Include="CodeForm.Designer.cs">
       <DependentUpon>CodeForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="ExplorerAssemblyCompiler.cs" />
+    <Compile Include="ExplorerCompiler.cs" />
     <Compile Include="ExplorerLinker.cs" />
     <Compile Include="ExplorerMethodCompiler.cs" />
     <Compile Include="Main.cs">
@@ -72,6 +72,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Mosa.Compiler.Common\Mosa.Compiler.Common.csproj">
+      <Project>{0B1011A6-8FCD-4F9E-BBB8-8DB86E23D2E8}</Project>
+      <Name>Mosa.Compiler.Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Mosa.Compiler.Framework\Mosa.Compiler.Framework.csproj">
       <Project>{75A12A8A-8C8F-4D1E-801B-689D8F781BF4}</Project>
       <Name>Mosa.Compiler.Framework</Name>
@@ -100,12 +104,13 @@
       <Project>{F3BB1082-13E3-4B37-ABF4-A3E42C9E7ED9}</Project>
       <Name>Mosa.Platform.AVR32</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Mosa.Platform.x86\Mosa.Platform.x86.csproj">
-      <Name>Mosa.Platform.x86</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Mosa.Compiler.InternalTrace\Mosa.Compiler.InternalTrace.csproj">
       <Project>{540BEAC7-A2C3-4C46-9F4A-E6E1DF4EF6FC}</Project>
       <Name>Mosa.Compiler.InternalTrace</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Mosa.Platform.x86\Mosa.Platform.x86.csproj">
+      <Project>{DE30CBE9-50F3-4A3E-BCC9-A8A36348530E}</Project>
+      <Name>Mosa.Platform.x86</Name>
     </ProjectReference>
     <ProjectReference Include="..\Mosa.Test.CodeDomCompiler\Mosa.Test.CodeDomCompiler.csproj">
       <Name>Mosa.Test.CodeDomCompiler</Name>

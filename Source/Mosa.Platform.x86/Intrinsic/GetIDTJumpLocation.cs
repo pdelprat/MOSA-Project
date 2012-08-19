@@ -9,8 +9,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
 using IR = Mosa.Compiler.Framework.IR;
@@ -20,7 +20,7 @@ namespace Mosa.Platform.x86.Intrinsic
 	/// <summary>
 	/// Representations a jump to the global interrupt handler.
 	/// </summary>
-	public sealed class GetIDTJumpLocation : IIntrinsicMethod
+	public sealed class GetIDTJumpLocation : IIntrinsicPlatformMethod
 	{
 		#region Methods
 
@@ -29,27 +29,27 @@ namespace Mosa.Platform.x86.Intrinsic
 		/// </summary>
 		/// <param name="context">The context.</param>
 		/// <param name="typeSystem">The type system.</param>
-		void IIntrinsicMethod.ReplaceIntrinsicCall(Context context, ITypeSystem typeSystem, IList<RuntimeParameter> parameters)
+		void IIntrinsicPlatformMethod.ReplaceIntrinsicCall(Context context, ITypeSystem typeSystem, IList<RuntimeParameter> parameters)
 		{
-			Context loadContext = new Context(context.InstructionSet, context.Operand1.Definitions[0]);
-			ConstantOperand op1 = loadContext.Operand1 as ConstantOperand;
+			var operand = context.Operand1;
 
-			if (op1 == null)
-				throw new InvalidOperationException();
+			if (!operand.IsConstant)
+			{
+				// try to find the constant - a bit of a hack
+				Context def = new Context(context.InstructionSet, operand.Definitions[0]);
 
-			int irq = -1;
+				if (def.Instruction is IR.Move && def.Operand1.IsConstant)
+					operand = def.Operand1;
+			}
 
-			object obj = op1.Value;
+			Debug.Assert(operand.IsConstant);
 
-			if ((obj is int) || (obj is uint))
-				irq = (int)obj;
-			else if (obj is sbyte)
-				irq = (sbyte)obj;
+			int irq = (int)operand.ValueAsLongInteger;
 
 			if ((irq > 256) || (irq < 0))
 				throw new InvalidOperationException();
 
-			context.SetInstruction(IR.Instruction.MoveInstruction, context.Result, new SymbolOperand(BuiltInSigType.Ptr, @"Mosa.Tools.Compiler.LinkerGenerated.<$>InterruptISR" + irq.ToString() + "()"));
+			context.SetInstruction(IR.IRInstruction.Move, context.Result, Operand.CreateSymbol(BuiltInSigType.Ptr, @"Mosa.Tools.Compiler.LinkerGenerated.<$>InterruptISR" + irq.ToString() + "()"));
 		}
 
 		#endregion // Methods

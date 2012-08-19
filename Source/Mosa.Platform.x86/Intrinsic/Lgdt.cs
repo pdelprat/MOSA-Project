@@ -9,7 +9,6 @@
 
 using System.Collections.Generic;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
 
@@ -18,7 +17,7 @@ namespace Mosa.Platform.x86.Intrinsic
 	/// <summary>
 	/// Representations the x86 Lgdt instruction.
 	/// </summary>
-	public sealed class Lgdt : IIntrinsicMethod
+	public sealed class Lgdt : IIntrinsicPlatformMethod
 	{
 
 		#region Methods
@@ -28,20 +27,20 @@ namespace Mosa.Platform.x86.Intrinsic
 		/// </summary>
 		/// <param name="context">The context.</param>
 		/// <param name="typeSystem">The type system.</param>
-		void IIntrinsicMethod.ReplaceIntrinsicCall(Context context, ITypeSystem typeSystem, IList<RuntimeParameter> parameters)
+		void IIntrinsicPlatformMethod.ReplaceIntrinsicCall(Context context, ITypeSystem typeSystem, IList<RuntimeParameter> parameters)
 		{
-			MemoryOperand operand = new MemoryOperand(BuiltInSigType.Ptr, GeneralPurposeRegister.EAX, new System.IntPtr(0));
-			context.SetInstruction(X86.Mov, new RegisterOperand(BuiltInSigType.Ptr, GeneralPurposeRegister.EAX), context.Operand1);
+			Operand operand = Operand.CreateMemoryAddress(BuiltInSigType.Ptr, GeneralPurposeRegister.EAX, new System.IntPtr(0));
+			context.SetInstruction(X86.Mov, Operand.CreateCPURegister(BuiltInSigType.Ptr, GeneralPurposeRegister.EAX), context.Operand1);
 			context.AppendInstruction(X86.Lgdt, null, operand);
 
-			RegisterOperand ax = new RegisterOperand(BuiltInSigType.Int16, GeneralPurposeRegister.EAX);
-			RegisterOperand ds = new RegisterOperand(BuiltInSigType.Int16, SegmentRegister.DS);
-			RegisterOperand es = new RegisterOperand(BuiltInSigType.Int16, SegmentRegister.ES);
-			RegisterOperand fs = new RegisterOperand(BuiltInSigType.Int16, SegmentRegister.FS);
-			RegisterOperand gs = new RegisterOperand(BuiltInSigType.Int16, SegmentRegister.GS);
-			RegisterOperand ss = new RegisterOperand(BuiltInSigType.Int16, SegmentRegister.SS);
+			Operand ax = Operand.CreateCPURegister(BuiltInSigType.Int16, GeneralPurposeRegister.EAX);
+			Operand ds = Operand.CreateCPURegister(BuiltInSigType.Int16, SegmentRegister.DS);
+			Operand es = Operand.CreateCPURegister(BuiltInSigType.Int16, SegmentRegister.ES);
+			Operand fs = Operand.CreateCPURegister(BuiltInSigType.Int16, SegmentRegister.FS);
+			Operand gs = Operand.CreateCPURegister(BuiltInSigType.Int16, SegmentRegister.GS);
+			Operand ss = Operand.CreateCPURegister(BuiltInSigType.Int16, SegmentRegister.SS);
 
-			context.AppendInstruction(X86.Mov, ax, new ConstantOperand(BuiltInSigType.Int32, (int)0x00000010));
+			context.AppendInstruction(X86.Mov, ax, Operand.CreateConstant(BuiltInSigType.Int32, (int)0x00000010));
 			context.AppendInstruction(X86.Mov, ds, ax);
 			context.AppendInstruction(X86.Mov, es, ax);
 			context.AppendInstruction(X86.Mov, fs, ax);

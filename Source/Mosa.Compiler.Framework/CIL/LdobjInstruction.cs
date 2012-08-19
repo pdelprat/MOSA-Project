@@ -9,7 +9,6 @@
 
 using System;
 
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 
@@ -75,11 +74,6 @@ namespace Mosa.Compiler.Framework.CIL
 			}
 		}
 
-		public SigType TypeReference
-		{
-			get { return typeRef; }
-		}
-
 		/// <summary>
 		/// Decodes the specified instruction.
 		/// </summary>
@@ -98,13 +92,11 @@ namespace Mosa.Compiler.Framework.CIL
 				// No, retrieve a type reference from the immediate argument
 				Token token = decoder.DecodeTokenType();
 				sigType = new ClassSigType(token);
-				ctx.Other = sigType;
 			}
-			else
-				ctx.Other = TypeReference;
-
+			
 			// Push the loaded value
 			ctx.Result = LoadInstruction.CreateResultOperand(decoder, Operand.StackTypeFromSigType(sigType), sigType);
+			ctx.SigType = sigType;
 		}
 
 		/// <summary>
@@ -112,7 +104,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
@@ -126,7 +118,7 @@ namespace Mosa.Compiler.Framework.CIL
 				if (rst != null && rst.ElementType.Type == CilElementType.U8
 					|| ptr != null && ptr.ElementType.Type == CilElementType.U8)
 				{
-					ctx.Result = compiler.CreateTemporary(BuiltInSigType.UInt64);
+					ctx.Result = compiler.CreateVirtualRegister(BuiltInSigType.UInt64);
 				}
 			}
 		}

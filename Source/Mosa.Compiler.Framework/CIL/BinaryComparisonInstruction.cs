@@ -44,7 +44,7 @@ namespace Mosa.Compiler.Framework.CIL
 			base.Decode(ctx, decoder);
 
 			// Set the result
-			ctx.Result = decoder.Compiler.CreateTemporary(BuiltInSigType.Int32);
+			ctx.Result = decoder.Compiler.CreateVirtualRegister(BuiltInSigType.Int32);
 		}
 
 		/// <summary>
@@ -54,7 +54,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// <returns></returns>
 		protected override string GetModifier(Context context)
 		{
-			switch (((context.Instruction) as CIL.ICILInstruction).OpCode)
+			switch (((context.Instruction) as CIL.BaseCILInstruction).OpCode)
 			{
 				case OpCode.Ceq: return @"==";
 				case OpCode.Cgt: return @">";

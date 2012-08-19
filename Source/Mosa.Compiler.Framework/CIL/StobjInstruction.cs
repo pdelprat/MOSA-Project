@@ -93,7 +93,7 @@ namespace Mosa.Compiler.Framework.CIL
 				Token token = decoder.DecodeTokenType();
 				RuntimeType type = decoder.TypeModule.GetType(token);
 
-				ctx.Other = type;
+				ctx.RuntimeType = type;
 			}
 
 			// FIXME: Check the value/destinations
@@ -104,7 +104,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 

@@ -10,10 +10,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using Mosa.Compiler.Framework.CIL;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.InternalTrace;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.Metadata;
@@ -31,11 +28,11 @@ namespace Mosa.Compiler.Framework
 	/// A method compiler is responsible for compiling a single function
 	/// of an object. There are various classes derived from BaseMethodCompiler,
 	/// which provide specific features, such as jit compilation, runtime
-	/// optimized jitting and others. MethodCompilerBase instances are usually
+	/// optimized jitting and others. BaseMethodCompiler instances are usually
 	/// created by invoking CreateMethodCompiler on a specific compiler
 	/// instance.
 	/// </remarks>
-	public class BaseMethodCompiler : IMethodCompiler, IDisposable
+	public class BaseMethodCompiler
 	{
 
 		#region Data Members
@@ -43,27 +40,22 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Holds the pipeline of the compiler.
 		/// </summary>
-		protected CompilerPipeline pipeline;
-
-		/// <summary>
-		/// Holds a list of operands which represent method parameters.
-		/// </summary>
-		private readonly List<Operand> parameters;
+		protected readonly CompilerPipeline pipeline;
 
 		/// <summary>
 		/// 
 		/// </summary>
-		private readonly ICompilationSchedulerStage compilationScheduler;
+		private readonly ICompilationScheduler compilationScheduler;
 
 		/// <summary>
 		/// The Architecture of the compilation target.
 		/// </summary>
-		private IArchitecture architecture;
+		private readonly IArchitecture architecture;
 
 		/// <summary>
 		/// Holds the linker used to resolve external symbols
 		/// </summary>
-		private IAssemblyLinker linker;
+		private readonly ILinker linker;
 
 		/// <summary>
 		/// Holds a list of operands which represent local variables
@@ -78,67 +70,64 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// The method definition being compiled
 		/// </summary>
-		private RuntimeMethod method;
+		private readonly RuntimeMethod method;
 
 		/// <summary>
 		/// Holds the type, which owns the method
 		/// </summary>
-		private RuntimeType type;
+		private readonly RuntimeType type;
 
 		/// <summary>
 		/// Holds the instruction set
 		/// </summary>
-		private InstructionSet instructionSet;
+		private readonly InstructionSet instructionSet;
 
 		/// <summary>
 		/// Holds the basic blocks
 		/// </summary>
-		private List<BasicBlock> basicBlocks;
+		private readonly BasicBlocks basicBlocks;
 
 		/// <summary>
 		/// Holds the type system during compilation
 		/// </summary>
-		protected ITypeSystem typeSystem;
+		protected readonly ITypeSystem typeSystem;
 
 		/// <summary>
 		/// Holds the type layout interface
 		/// </summary>
-		protected ITypeLayout typeLayout;
+		protected readonly ITypeLayout typeLayout;
 
 		/// <summary>
 		/// Holds the modules type system
 		/// </summary>
-		protected ITypeModule moduleTypeSystem;
+		protected readonly ITypeModule moduleTypeSystem;
 
 		/// <summary>
 		/// Holds the internal logging interface
 		/// </summary>
-		protected IInternalTrace internalTrace;
-
-		/// <summary>
-		/// Holds the blocks indexed by label
-		/// </summary>
-		private Dictionary<int, BasicBlock> basicBlocksByLabel = new Dictionary<int, BasicBlock>();
+		protected readonly IInternalTrace internalTrace;
 
 		/// <summary>
 		/// Holds the exception clauses
 		/// </summary>
-		private ExceptionClauseHeader exceptionClauseHeader = new ExceptionClauseHeader();
+		private readonly ExceptionClauseHeader exceptionClauseHeader = new ExceptionClauseHeader();
 
 		/// <summary>
-		/// Holds the assembly compiler
+		/// Holds the compiler
 		/// </summary>
-		private AssemblyCompiler assemblyCompiler;
-
-		/// <summary>
-		/// Holds the plug system
-		/// </summary>
-		private IPlugSystem plugSystem;
+		private readonly BaseCompiler compiler;
 
 		/// <summary>
 		/// Holds the stack layout
 		/// </summary>
-		private StackLayout stackLayout;
+		private readonly StackLayout stackLayout;
+
+		/// <summary>
+		/// Holds the virtual register layout
+		/// </summary>
+		private readonly VirtualRegisterLayout virtualRegisterLayout;
+
+		private bool stopMethodCompiler;
 
 		#endregion // Data Members
 
@@ -147,32 +136,23 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Initializes a new instance of the <see cref="BaseMethodCompiler"/> class.
 		/// </summary>
-		/// <param name="assemblyCompiler">The assembly compiler.</param>
-		/// <param name="type">The type, which owns the method to compile.</param>
+		/// <param name="compiler">The assembly compiler.</param>
 		/// <param name="method">The method to compile by this instance.</param>
 		/// <param name="instructionSet">The instruction set.</param>
-		/// <param name="compilationScheduler">The compilation scheduler.</param>
-		protected BaseMethodCompiler(AssemblyCompiler assemblyCompiler, RuntimeType type, RuntimeMethod method, InstructionSet instructionSet, ICompilationSchedulerStage compilationScheduler)
+		protected BaseMethodCompiler(BaseCompiler compiler, RuntimeMethod method, InstructionSet instructionSet)
 		{
-			if (compilationScheduler == null)
-				throw new ArgumentNullException(@"compilationScheduler");
-
-			this.assemblyCompiler = assemblyCompiler;
+			this.compiler = compiler;
 			this.method = method;
-			this.type = type;
-			this.compilationScheduler = compilationScheduler;
+			this.type = method.DeclaringType;
+			this.compilationScheduler = compiler.Scheduler;
 			this.moduleTypeSystem = method.Module;
+			this.architecture = compiler.Architecture;
+			this.typeSystem = compiler.TypeSystem;
+			this.typeLayout = Compiler.TypeLayout;
+			this.internalTrace = Compiler.InternalTrace;
+			this.linker = compiler.Linker;
 
-			this.architecture = assemblyCompiler.Architecture;
-			this.typeSystem = assemblyCompiler.TypeSystem;
-			this.typeLayout = AssemblyCompiler.TypeLayout;
-			this.internalTrace = AssemblyCompiler.InternalTrace;
-
-			this.linker = assemblyCompiler.Pipeline.FindFirst<IAssemblyLinker>();
-			this.plugSystem = assemblyCompiler.Pipeline.FindFirst<IPlugSystem>();
-
-			this.parameters = new List<Operand>(new Operand[method.Parameters.Count]);
-			this.basicBlocks = new List<BasicBlock>();
+			this.basicBlocks = new BasicBlocks();
 
 			this.instructionSet = instructionSet ?? new InstructionSet(256);
 
@@ -180,7 +160,11 @@ namespace Mosa.Compiler.Framework
 
 			this.stackLayout = new StackLayout(architecture, method.Parameters.Count + (method.Signature.HasThis || method.Signature.HasExplicitThis ? 1 : 0));
 
+			this.virtualRegisterLayout = new VirtualRegisterLayout(architecture, stackLayout);
+
 			EvaluateParameterOperands();
+
+			this.stopMethodCompiler = false;
 		}
 
 		#endregion // Construction
@@ -200,7 +184,7 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Gets the linker used to resolve external symbols.
 		/// </summary>
-		public IAssemblyLinker Linker { get { return linker; } }
+		public ILinker Linker { get { return linker; } }
 
 		/// <summary>
 		/// Gets the method implementation being compiled.
@@ -222,13 +206,13 @@ namespace Mosa.Compiler.Framework
 		/// Gets the basic blocks.
 		/// </summary>
 		/// <value>The basic blocks.</value>
-		public IList<BasicBlock> BasicBlocks { get { return basicBlocks; } }
+		public BasicBlocks BasicBlocks { get { return basicBlocks; } }
 
 		/// <summary>
 		/// Retrieves the compilation scheduler.
 		/// </summary>
 		/// <value>The compilation scheduler.</value>
-		public ICompilationSchedulerStage Scheduler { get { return compilationScheduler; } }
+		public ICompilationScheduler Scheduler { get { return compilationScheduler; } }
 
 		/// <summary>
 		/// Provides access to the pipeline of this compiler.
@@ -251,7 +235,7 @@ namespace Mosa.Compiler.Framework
 		/// Gets the internal logging interface
 		/// </summary>
 		/// <value>The log.</value>
-		public IInternalTrace InternalLog { get { return internalTrace; } }
+		public IInternalTrace InternalTrace { get { return internalTrace; } }
 
 		/// <summary>
 		/// Gets the exception clause header.
@@ -267,17 +251,17 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Gets the assembly compiler.
 		/// </summary>
-		public AssemblyCompiler AssemblyCompiler { get { return assemblyCompiler; } }
-
-		/// <summary>
-		/// Gets the plug system.
-		/// </summary>
-		public IPlugSystem PlugSystem { get { return plugSystem; } }
+		public BaseCompiler Compiler { get { return compiler; } }
 
 		/// <summary>
 		/// Gets the stack layout.
 		/// </summary>
 		public StackLayout StackLayout { get { return stackLayout; } }
+
+		/// <summary>
+		/// Gets the virtual register layout.
+		/// </summary>
+		public VirtualRegisterLayout VirtualRegisterLayout { get { return virtualRegisterLayout; } }
 
 		#endregion // Properties
 
@@ -293,7 +277,7 @@ namespace Mosa.Compiler.Framework
 
 			foreach (var localVariable in localsSig.Locals)
 			{
-				locals[index++] = stackLayout.AllocateStackOperand(localVariable.Type);
+				locals[index++] = stackLayout.AllocateStackOperand(localVariable.Type, true);
 				//Scheduler.ScheduleTypeForCompilation(localVariable.Type); // TODO
 			}
 
@@ -309,7 +293,7 @@ namespace Mosa.Compiler.Framework
 			if (method.Signature.HasThis || method.Signature.HasExplicitThis)
 			{
 				var signatureType = Method.DeclaringType.ContainsOpenGenericParameters
-					? assemblyCompiler.GenericTypePatcher.PatchSignatureType(Method.Module, Method.DeclaringType as CilGenericType, type.Token)
+					? compiler.GenericTypePatcher.PatchSignatureType(Method.Module, Method.DeclaringType as CilGenericType, type.Token)
 					: new ClassSigType(type.Token);
 
 				stackLayout.SetStackParameter(index++, new RuntimeParameter(@"this", 2, ParameterAttributes.In), signatureType);
@@ -321,7 +305,7 @@ namespace Mosa.Compiler.Framework
 
 				if (parameterType is GenericInstSigType && (parameterType as GenericInstSigType).ContainsGenericParameters)
 				{
-					parameterType = assemblyCompiler.GenericTypePatcher.PatchSignatureType(typeSystem.InternalTypeModule, Method.DeclaringType, (parameterType as GenericInstSigType).BaseType.Token);
+					parameterType = compiler.GenericTypePatcher.PatchSignatureType(typeSystem.InternalTypeModule, Method.DeclaringType, (parameterType as GenericInstSigType).BaseType.Token);
 				}
 
 				stackLayout.SetStackParameter(index++, method.Parameters[paramIndex], parameterType);
@@ -335,7 +319,7 @@ namespace Mosa.Compiler.Framework
 		/// <returns>A stream object, which can be used to store emitted instructions.</returns>
 		public virtual Stream RequestCodeStream()
 		{
-			return linker.Allocate(method.ToString(), SectionKind.Text, 0, 0);
+			return linker.Allocate(method.FullName, SectionKind.Text, 0, 0);
 		}
 
 		/// <summary>
@@ -351,59 +335,31 @@ namespace Mosa.Compiler.Framework
 				stage.Run();
 
 				Mosa.Compiler.InternalTrace.InstructionLogger.Run(this, stage);
+
+				if (stopMethodCompiler)
+					break;
 			}
 
 			EndCompile();
 		}
 
 		/// <summary>
-		/// Creates a result operand for an instruction.
+		/// Stops the method compiler.
 		/// </summary>
-		/// <param name="type">The signature type of the operand to be created.</param>
-		/// <returns>A new temporary result operand.</returns>
-		public Operand CreateResultOperand(SigType type)
-		{
-			if (type.Type != CilElementType.I8 && type.Type != CilElementType.U8)
-			{
-				return architecture.CreateResultOperand(type);
-			}
-			return CreateTemporary(type);
-		}
+		/// <returns></returns>
+		public void StopMethodCompiler() { stopMethodCompiler = true; } 
 
 		/// <summary>
-		/// Creates a new temporary local variable operand.
+		/// Creates a new virtual register operand.
 		/// </summary>
-		/// <param name="type">The signature _type of the temporary.</param>
-		/// <returns>An operand, which represents the temporary.</returns>
-		public Operand CreateTemporary(SigType type)
+		/// <param name="type">The signature type of the virtual register.</param>
+		/// <returns>
+		/// An operand, which represents the virtual register.
+		/// </returns>
+		public Operand CreateVirtualRegister(SigType type)
 		{
-			return stackLayout.AllocateStackOperand(type);
-		}
-
-		/// <summary>
-		/// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
-		/// </summary>
-		public void Dispose()
-		{
-			if (pipeline == null)
-				throw new ObjectDisposedException(@"MethodCompilerBase");
-
-			foreach (IMethodCompilerStage mcs in pipeline)
-			{
-				IDisposable d = mcs as IDisposable;
-				if (d != null)
-					d.Dispose();
-			}
-
-			pipeline = null;
-			architecture = null;
-			linker = null;
-			method = null;
-			type = null;
-			instructionSet = null;
-			basicBlocks = null;
-			stackLayout = null;
-			locals = null;
+			//return virtualRegisterLayout.AllocateVirtualRegister(type);
+			return stackLayout.AllocateStackOperand(type, false);
 		}
 
 		/// <summary>
@@ -436,6 +392,11 @@ namespace Mosa.Compiler.Framework
 		{
 			return stackLayout.GetStackParameter(index);
 		}
+
+		/// <summary>
+		/// Gets the parameters.
+		/// </summary>
+		public Operand[] Parameters { get { return stackLayout.Parameters; } }
 
 		/// <summary>
 		/// Sets the signature of local variables in the method.
@@ -481,36 +442,6 @@ namespace Mosa.Compiler.Framework
 			}
 
 			return null;
-		}
-
-		/// <summary>
-		/// Retrieves a basic block from its label.
-		/// </summary>
-		/// <param name="label">The label of the basic block.</param>
-		/// <returns>
-		/// The basic block with the given label.
-		/// </returns>
-		public BasicBlock FromLabel(int label)
-		{
-			BasicBlock basicBlock = null;
-
-			basicBlocksByLabel.TryGetValue(label, out basicBlock);
-
-			return basicBlock;
-		}
-
-		/// <summary>
-		/// Creates the block.
-		/// </summary>
-		/// <param name="label">The label.</param>
-		/// <param name="index">The index.</param>
-		/// <returns></returns>
-		public BasicBlock CreateBlock(int label, int index)
-		{
-			BasicBlock basicBlock = new BasicBlock(basicBlocks.Count, label, index);
-			basicBlocks.Add(basicBlock);
-			basicBlocksByLabel.Add(label, basicBlock);
-			return basicBlock;
 		}
 
 		#endregion // Methods

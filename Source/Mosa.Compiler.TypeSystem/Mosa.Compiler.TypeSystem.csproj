@@ -75,7 +75,6 @@
     <Compile Include="Cil\CilRuntimeType.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="DelegateTypePatcher.cs" />
     <Compile Include="GenericTypePatcher.cs" />
     <Compile Include="IGenericTypePatcher.cs" />
     <Compile Include="InternalTypeModule.cs" />
@@ -89,7 +88,6 @@
     <Compile Include="Generic\CilGenericType.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="IRuntimeAttributable.cs" />
     <Compile Include="ITypeModule.cs" />
     <Compile Include="TypeModule.cs" />
     <Compile Include="RuntimeAttribute.cs" />

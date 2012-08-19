@@ -13,7 +13,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Mosa.Compiler.Common;
-using Mosa.Compiler.InternalTrace;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.TypeSystem;
 
@@ -22,30 +21,15 @@ namespace Mosa.Compiler.Framework.Stages
 	/// <summary>
 	/// Performs memory layout of a type for compilation.
 	/// </summary>
-	public sealed class TypeLayoutStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage
+	public sealed class TypeLayoutStage : BaseCompilerStage, ICompilerStage
 	{
-		#region Data members
 
-		private IAssemblyLinker linker;
-		//private HashSet<RuntimeType> processed = new HashSet<RuntimeType>();
+		#region ICompilerStage members
 
-		#endregion // Data members
-
-		#region IAssemblyCompilerStage members
-
-		void IAssemblyCompilerStage.Setup(AssemblyCompiler compiler)
-		{
-			base.Setup(compiler);
-			this.linker = RetrieveAssemblyLinkerFromCompiler();
-		}
-
-		void IAssemblyCompilerStage.Run()
+		void ICompilerStage.Run()
 		{
 			foreach (RuntimeType type in typeSystem.GetAllTypes())
 			{
-				//if (processed.Contains(type))
-				//    continue;
-
 				if (type.ContainsOpenGenericParameters)
 					continue;
 
@@ -61,13 +45,10 @@ namespace Mosa.Compiler.Framework.Stages
 				}
 
 				AllocateStaticFields(type);
-				//processed.Add(type);
 			}
 		}
 
-		#endregion // IAssemblyCompilerStage members
-
-		public ITypeLayout TypeLayout { get { return typeLayout; } }
+		#endregion // ICompilerStage members
 
 		private void BuildTypeInterfaceSlots(RuntimeType type)
 		{
@@ -179,9 +160,7 @@ namespace Mosa.Compiler.Framework.Stages
 		{
 			int methodTableSize = ((headerlinks == null ? 0 : headerlinks.Count) + (methodTable == null ? 0 : methodTable.Count)) * typeLayout.NativePointerSize;
 
-			Trace(CompilerEvent.DebugInfo, "Method Table: " + methodTableName);
-
-			using (Stream stream = linker.Allocate(methodTableName, SectionKind.ROData, methodTableSize, typeLayout.NativePointerAlignment))
+			using (Stream stream = compiler.Linker.Allocate(methodTableName, SectionKind.ROData, methodTableSize, typeLayout.NativePointerAlignment))
 			{
 				stream.Position = methodTableSize;
 			}
@@ -194,41 +173,36 @@ namespace Mosa.Compiler.Framework.Stages
 				{
 					if (!string.IsNullOrEmpty(link))
 					{
-						Trace(CompilerEvent.DebugInfo, "  # " + (offset / typeLayout.NativePointerSize).ToString() + " " + link);
+						compiler.Linker.Link(LinkType.AbsoluteAddress | LinkType.NativeI4, methodTableName, offset, 0, link, IntPtr.Zero);
+					}
 
-						linker.Link(LinkType.AbsoluteAddress | LinkType.NativeI4, methodTableName, offset, 0, link, IntPtr.Zero);
-					}
-					else
-					{
-						Trace(CompilerEvent.DebugInfo, "  # " + (offset / typeLayout.NativePointerSize).ToString() + " [null]");
-					}
 					offset += typeLayout.NativePointerSize;
 				}
 			}
 
-			if (methodTable != null)
+			if (methodTable == null)
+				return;
+
+			foreach (RuntimeMethod method in methodTable)
 			{
-				foreach (RuntimeMethod method in methodTable)
+				if (!method.IsAbstract)
 				{
-					if (!method.IsAbstract)
+					//if (compiler.Scheduler.IsMethodScheduled(method))
 					{
-						Trace(CompilerEvent.DebugInfo, "  # " + (offset / typeLayout.NativePointerSize).ToString() + " " + method.ToString());
-						linker.Link(LinkType.AbsoluteAddress | LinkType.NativeI4, methodTableName, offset, 0, method.ToString(), IntPtr.Zero);
+						compiler.Linker.Link(LinkType.AbsoluteAddress | LinkType.NativeI4, methodTableName, offset, 0, method.FullName, IntPtr.Zero);
 					}
-					else
-					{
-						Trace(CompilerEvent.DebugInfo, "  # " + (offset / typeLayout.NativePointerSize).ToString() + " [null]");
-					}
-					offset += typeLayout.NativePointerSize;
 				}
+				offset += typeLayout.NativePointerSize;
 			}
+
 		}
 
 		private void AskLinkerToCreateArray(string tableName, byte[] array)
 		{
 			int size = array.Length;
 
-			using (Stream stream = linker.Allocate(tableName, SectionKind.Text, size, typeLayout.NativePointerAlignment))
+			//FIXME: change  SectionKind.Text to SectionKind.ROData
+			using (Stream stream = compiler.Linker.Allocate(tableName, SectionKind.Text, size, typeLayout.NativePointerAlignment))
 			{
 				foreach (byte b in array)
 					stream.WriteByte(b);
@@ -277,12 +251,12 @@ namespace Mosa.Compiler.Framework.Stages
 				section = SectionKind.BSS;
 			}
 
-			this.AllocateSpace(field, section, size, alignment);
+			AllocateSpace(field, section, size, alignment);
 		}
 
 		private void AllocateSpace(RuntimeField field, SectionKind section, int size, int alignment)
 		{
-			using (Stream stream = linker.Allocate(field.ToString(), section, size, alignment))
+			using (Stream stream = compiler.Linker.Allocate(field.ToString(), section, size, alignment))
 			{
 				if (field.RVA != 0)
 				{

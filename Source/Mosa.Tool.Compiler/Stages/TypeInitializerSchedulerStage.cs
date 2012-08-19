@@ -7,9 +7,7 @@
  *  Michael Ruck (grover) <sharpos@michaelruck.de>
  */
 
-
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.TypeSystem;
 using IR = Mosa.Compiler.Framework.IR;
@@ -25,7 +23,7 @@ namespace Mosa.Tool.Compiler.Stages
 	/// by the high-level language compiler by placing cctors in some order in
 	/// metadata.
 	/// </remarks>
-	public sealed class TypeInitializerSchedulerStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage, IPipelineStage, ITypeInitializerSchedulerStage
+	public sealed class TypeInitializerSchedulerStage : BaseCompilerStage, ICompilerStage, IPipelineStage, ITypeInitializerSchedulerStage
 	{
 		#region Data Members
 
@@ -53,7 +51,7 @@ namespace Mosa.Tool.Compiler.Stages
 			instructionSet = new InstructionSet(1024);
 			ctx = new Context(instructionSet);
 
-			ctx.AppendInstruction(IR.Instruction.PrologueInstruction);
+			ctx.AppendInstruction(IR.IRInstruction.Prologue);
 			//ctx.Other = 0; // stacksize
 		}
 
@@ -72,9 +70,9 @@ namespace Mosa.Tool.Compiler.Stages
 
 		#endregion
 
-		#region IAssemblyCompilerStage Members
+		#region ICompilerStage Members
 
-		void IAssemblyCompilerStage.Setup(AssemblyCompiler compiler)
+		void ICompilerStage.Setup(BaseCompiler compiler)
 		{
 			base.Setup(compiler);
 		}
@@ -82,7 +80,7 @@ namespace Mosa.Tool.Compiler.Stages
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		void IAssemblyCompilerStage.Run()
+		void ICompilerStage.Run()
 		{
 			ITypeModule mainTypeModule = typeSystem.MainTypeModule;
 
@@ -93,13 +91,13 @@ namespace Mosa.Tool.Compiler.Stages
 				Schedule(entrypoint);
 			}
 
-			ctx.AppendInstruction(IR.Instruction.EpilogueInstruction);
+			ctx.AppendInstruction(IR.IRInstruction.Epilogue);
 			//ctx.Other = 0;
 
 			method = LinkTimeCodeGenerator.Compile(compiler, @"AssemblyInit", instructionSet, typeSystem);
 		}
 
-		#endregion // IAssemblyCompilerStage Members
+		#endregion // ICompilerStage Members
 
 		#region Methods
 
@@ -109,8 +107,8 @@ namespace Mosa.Tool.Compiler.Stages
 		/// <param name="method">The method.</param>
 		public void Schedule(RuntimeMethod method)
 		{
-			SymbolOperand symbolOperand = SymbolOperand.FromMethod(method);
-			ctx.AppendInstruction(IR.Instruction.CallInstruction, null, symbolOperand);
+			Operand symbolOperand = Operand.CreateSymbolFromMethod(method);
+			ctx.AppendInstruction(IR.IRInstruction.Call, null, symbolOperand);
 		}
 
 		#endregion // Methods

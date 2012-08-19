@@ -11,12 +11,10 @@
 
 using System;
 using System.IO;
-using Mosa.Compiler.Common;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
+using Mosa.Compiler.Framework.Platform;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.Metadata;
-using Mosa.Compiler.Framework.Platform;
 
 namespace Mosa.Platform.x86
 {
@@ -41,30 +39,30 @@ namespace Mosa.Platform.x86
 
 		#endregion // IPipelineStage Members
 
-		#region Emit Methods
+		#region Emit Constant Methods
 
 		/// <summary>
 		/// Emits the constant operands.
 		/// </summary>
-		/// <param name="ctx">The context.</param>
-		protected void EmitOperandConstants(Context ctx)
+		/// <param name="context">The context.</param>
+		protected void EmitOperandConstants(Context context)
 		{
-			if (ctx.OperandCount > 0)
-				ctx.Operand1 = EmitConstant(ctx.Operand1);
-			else if (ctx.OperandCount > 1)
-				ctx.Operand2 = EmitConstant(ctx.Operand2);
-			else if (ctx.OperandCount > 2)
-				ctx.Operand3 = EmitConstant(ctx.Operand3);
+			if (context.OperandCount > 0)
+				context.Operand1 = EmitConstant(context.Operand1);
+			else if (context.OperandCount > 1)
+				context.Operand2 = EmitConstant(context.Operand2);
+			else if (context.OperandCount > 2)
+				context.Operand3 = EmitConstant(context.Operand3);
 		}
 
 		/// <summary>
 		/// Emits the constant operands.
 		/// </summary>
-		/// <param name="ctx">The context.</param>
-		protected void EmitResultConstants(Context ctx)
+		/// <param name="context">The context.</param>
+		protected void EmitResultConstants(Context context)
 		{
-			if (ctx.ResultCount == 1)
-				ctx.Result = EmitConstant(ctx.Result);
+			if (context.ResultCount == 1)
+				context.Result = EmitConstant(context.Result);
 		}
 
 		/// <summary>
@@ -79,48 +77,36 @@ namespace Mosa.Platform.x86
 		/// This function checks if the given operand needs to be moved and rewires the operand, if
 		/// it must be moved.
 		/// </remarks>
-		protected Operand EmitConstant(Operand op)
+		protected Operand EmitConstant(Operand cop)
 		{
-			ConstantOperand cop = op as ConstantOperand;
-			if (cop != null && (cop.StackType == StackTypeCode.F || cop.StackType == StackTypeCode.Int64))
+			if (!cop.IsConstant)
+				return cop;
+
+			if (!(cop.StackType == StackTypeCode.F || cop.StackType == StackTypeCode.Int64))
+				return cop;
+
+			int size, alignment;
+			architecture.GetTypeRequirements(cop.Type, out size, out alignment);
+
+			string name = String.Format("C_{0}", Guid.NewGuid());
+			using (Stream stream = methodCompiler.Linker.Allocate(name, SectionKind.ROData, size, alignment))
 			{
-				int size, alignment;
-				architecture.GetTypeRequirements(cop.Type, out size, out alignment);
-
-				string name = String.Format("C_{0}", Guid.NewGuid());
-				using (Stream stream = methodCompiler.Linker.Allocate(name, SectionKind.ROData, size, alignment))
+				using (BinaryWriter writer = new BinaryWriter(stream))
 				{
-					using (BinaryWriter writer = new BinaryWriter(stream))
+					switch (cop.Type.Type)
 					{
-						switch (cop.Type.Type)
-						{
-							case CilElementType.R4:
-								writer.Write((float)cop.Value);
-								break;
-
-							case CilElementType.R8:
-								writer.Write((double)cop.Value);
-								break;
-
-							case CilElementType.I8:
-								writer.Write((long)cop.Value);
-								break;
-
-							case CilElementType.U8:
-								writer.Write((ulong)cop.Value);
-								break;
-							default:
-								throw new NotSupportedException();
-						}
+						case CilElementType.R4: writer.Write((float)cop.Value); break;
+						case CilElementType.R8: writer.Write((double)cop.Value); break;
+						case CilElementType.I8: writer.Write((long)cop.Value); break;
+						case CilElementType.U8: writer.Write((ulong)cop.Value); break;
+						default: throw new NotSupportedException();
 					}
 				}
-				// FIXME: Attach the label operand to the linker symbol
-				// FIXME: Rename the operand to SymbolOperand
-				// FIXME: Use the provided name to link
-				LabelOperand lop = new LabelOperand(cop.Type, name);
-				op = lop;
 			}
-			return op;
+			// FIXME: Attach the label operand to the linker symbol
+			// FIXME: Rename the operand to SymbolOperand
+			// FIXME: Use the provided name to link
+			return Operand.CreateLabel(cop.Type, name);
 		}
 
 		#endregion // Emit Methods

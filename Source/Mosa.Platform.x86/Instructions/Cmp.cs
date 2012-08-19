@@ -9,8 +9,6 @@
 
 using System;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Platform;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -46,31 +44,37 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if ((source is MemoryOperand) && (third is RegisterOperand))
+			if ((source.IsMemoryAddress) && (third.IsRegister))
 			{
 				if (IsByte(source) || IsByte(third))
 					return M_R_8;
 				if (IsChar(source) || IsChar(third))
 					return M_R_16;
+				if (IsShort(source) || IsShort(third))
+					return M_R_16;
 				return M_R;
 			}
 
-			if ((source is RegisterOperand) && (third is MemoryOperand))
+			if ((source.IsRegister) && (third.IsMemoryAddress))
 			{
 				if (IsByte(third) || IsByte(source))
 					return R_M_8;
-				if (IsChar(third) || IsShort(third))
+				if (IsChar(third) || IsChar(source))
+					return R_M_16;
+				if (IsShort(third) || IsShort(source))
 					return R_M_16;
 				return R_M;
 			}
 
-			if ((source is RegisterOperand) && (third is RegisterOperand)) return R_R;
-			if ((source is MemoryOperand) && (third is ConstantOperand)) return M_C;
-			if ((source is RegisterOperand) && (third is ConstantOperand))
+			if ((source.IsRegister) && (third.IsRegister)) return R_R;
+			if ((source.IsMemoryAddress) && (third.IsConstant)) return M_C;
+			if ((source.IsRegister) && (third.IsConstant))
 			{
 				if (IsByte(third) || IsByte(source))
 					return R_C_8;
-				if (IsChar(third) || IsShort(third))
+				if (IsChar(third) || IsChar(source))
+					return R_C_16;
+				if (IsShort(third) || IsShort(source))
 					return R_C_16;
 				return R_C;
 			}

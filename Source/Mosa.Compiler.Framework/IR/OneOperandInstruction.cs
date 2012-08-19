@@ -7,7 +7,6 @@
  *  Michael Ruck (grover) <sharpos@michaelruck.de>
  */
 
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Compiler.Framework.IR
 {
@@ -18,7 +17,7 @@ namespace Mosa.Compiler.Framework.IR
 	/// The <see cref="OneOperandInstruction"/> is the base class for
 	/// IR instructions using one operand.
 	/// </remarks>
-	public abstract class OneOperandInstruction : BaseInstruction
+	public abstract class OneOperandInstruction : BaseIRInstruction
 	{
 
 		#region Construction

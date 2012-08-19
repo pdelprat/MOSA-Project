@@ -14,7 +14,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public class BranchInstruction : BaseInstruction, IBranchInstruction
+	public class BranchInstruction : BaseCILInstruction, IBranchInstruction
 	{
 		#region Construction
 
@@ -40,10 +40,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.Branch; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.Branch; } }
 
 		#endregion // Properties
 

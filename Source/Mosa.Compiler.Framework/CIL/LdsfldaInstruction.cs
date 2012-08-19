@@ -15,7 +15,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class LdsfldaInstruction : BaseInstruction
+	public sealed class LdsfldaInstruction : BaseCILInstruction
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="LdsfldaInstruction"/> class.
@@ -45,7 +45,7 @@ namespace Mosa.Compiler.Framework.CIL
 				//TODO
 			}
 
-			ctx.Result = decoder.Compiler.CreateTemporary(BuiltInSigType.Ptr);
+			ctx.Result = decoder.Compiler.CreateVirtualRegister(BuiltInSigType.Ptr);
 		}
 
 		/// <summary>

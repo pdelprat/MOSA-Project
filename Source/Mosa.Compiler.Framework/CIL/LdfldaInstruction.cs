@@ -8,7 +8,6 @@
  */
 
 using System.Diagnostics;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem.Generic;
@@ -47,6 +46,7 @@ namespace Mosa.Compiler.Framework.CIL
 			Token token = decoder.DecodeTokenType();
 			ctx.RuntimeField = decoder.Method.Module.GetField(token);
 
+			// FIXME: Can this be put into a re-used method?
 			if (ctx.RuntimeField.ContainsGenericParameter || ctx.RuntimeField.DeclaringType.ContainsOpenGenericParameters)
 			{
 				foreach (var field in decoder.Method.DeclaringType.Fields)
@@ -62,7 +62,7 @@ namespace Mosa.Compiler.Framework.CIL
 				{
 					ctx.RuntimeField = decoder.GenericTypePatcher.PatchField(decoder.TypeModule, decoder.Method.DeclaringType as CilGenericType, ctx.RuntimeField);
 				}
-				decoder.Compiler.Scheduler.ScheduleTypeForCompilation(ctx.RuntimeField.DeclaringType);
+				decoder.Compiler.Scheduler.TrackFieldReferenced(ctx.RuntimeField);
 				Debug.Assert(!ctx.RuntimeField.ContainsGenericParameter);
 			}
 

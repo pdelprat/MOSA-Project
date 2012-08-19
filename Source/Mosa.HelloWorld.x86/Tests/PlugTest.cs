@@ -6,8 +6,6 @@
  *  Phil Garcia (tgiphil) <phil@thinkedge.com>
  */
 
-using System;
-using System.Text;
 using Mosa.Internal.Plug;
 
 namespace Mosa.HelloWorld.x86.Tests
@@ -34,7 +32,7 @@ namespace Mosa.HelloWorld.x86.Tests
 	public class PlugTestTest : KernelTest
 	{
 		public PlugTestTest()
-			: base("PlugTest")
+			: base("Plug")
 		{
 			testMethods.Add(PlugTestTest1);
 			testMethods.Add(PlugTestTest2);

@@ -40,10 +40,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.Switch; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.Switch; } }
 
 		#endregion // Properties
 
@@ -62,11 +59,11 @@ namespace Mosa.Compiler.Framework.CIL
 			// Retrieve the number of branch targets
 			uint count = decoder.DecodeUInt();
 
-			ctx.Branch = new Branch(count + 1);
+			ctx.AllocateBranchTargets(count + 1);
 
 			// Populate the array
 			for (uint i = 0; i < count; i++)
-				ctx.Branch.Targets[i] = decoder.DecodeInt();
+				ctx.BranchTargets[i] = decoder.DecodeInt();
 		}
 
 		/// <summary>

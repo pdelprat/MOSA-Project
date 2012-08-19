@@ -8,10 +8,8 @@
  */
 
 using System;
-using System.Text;
 
 using Mosa.Compiler.Framework;
-using Mosa.Platform.x86;
 
 namespace Mosa.Platform.x86.XSharp
 {
@@ -29,11 +27,12 @@ namespace Mosa.Platform.x86.XSharp
 			GreaterThanOrEqualTo,
 			LessThan,
 			LessThanOrEqualTo,
-			Above, AboveOrEqual,
+			Above,
+			AboveOrEqual,
 			Below
 		};
 
-		private IMethodCompiler methodCompiler;
+		private BaseMethodCompiler methodCompiler;
 		private Context currentContext;
 
 		//private InstructionSet InstructionSet;
@@ -50,7 +49,7 @@ namespace Mosa.Platform.x86.XSharp
 		private string label;
 
 		public XSharpMethod()
-		{				
+		{
 			espRegister = new ESPRegister(this);
 			ebpRegister = new EBPRegister(this);
 			edxRegister = new EDXRegister(this);
@@ -60,7 +59,7 @@ namespace Mosa.Platform.x86.XSharp
 			ediRegister = new EDIRegister(this);
 		}
 
-		public void Execute(IMethodCompiler methodCompiler)
+		public void Execute(BaseMethodCompiler methodCompiler)
 		{
 			this.methodCompiler = methodCompiler;
 			this.Assemble();

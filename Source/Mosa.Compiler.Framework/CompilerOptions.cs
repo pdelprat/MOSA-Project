@@ -66,12 +66,12 @@ namespace Mosa.Compiler.Framework
 		/// Gets or sets the linker stage.
 		/// </summary>
 		/// <value>The linker stage.</value>
-		public IAssemblyLinker Linker { get; set; }
+		public ILinker Linker { get; set; }
 
 		/// <summary>
 		/// Gets or sets the compiler stage responsible for booting.
 		/// </summary>
-		public IAssemblyCompilerStage BootCompilerStage { get; set; }
+		public ICompilerStage BootCompilerStage { get; set; }
 
 		/// <summary>
 		/// Gets or sets the statistics file.
@@ -90,6 +90,14 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <value><c>true</c> if SSA is enabled; otherwise, <c>false</c>.</value>
 		public bool EnableSSA { get; set; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether [enable SSA optimizations].
+		/// </summary>
+		/// <value>
+		/// 	<c>true</c> if [enable SSA optimizations]; otherwise, <c>false</c>.
+		/// </value>
+		public bool EnableSSAOptimizations { get; set; }
 
 		/// <summary>
 		/// Gets or sets a value indicating whether static allocations are enabled.
@@ -130,6 +138,7 @@ namespace Mosa.Compiler.Framework
 		public CompilerOptions()
 		{
 			EnableSSA = false;
+			EnableSSAOptimizations = true;
 		}
 	}
 }

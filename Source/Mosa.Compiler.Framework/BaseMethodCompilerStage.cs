@@ -9,7 +9,6 @@
  */
 
 using System;
-using System.Collections.Generic;
 using Mosa.Compiler.InternalTrace;
 using Mosa.Compiler.Metadata.Loader;
 using Mosa.Compiler.Metadata.Signatures;
@@ -27,7 +26,7 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Hold the method compiler
 		/// </summary>
-		protected IMethodCompiler methodCompiler;
+		protected BaseMethodCompiler methodCompiler;
 
 		/// <summary>
 		/// The architecture of the compilation process
@@ -42,7 +41,7 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// List of basic blocks found during decoding
 		/// </summary>
-		protected IList<BasicBlock> basicBlocks;
+		protected BasicBlocks basicBlocks;
 
 		/// <summary>
 		/// Holds the type system
@@ -97,7 +96,7 @@ namespace Mosa.Compiler.Framework
 		/// Setups the specified compiler.
 		/// </summary>
 		/// <param name="compiler">The compiler.</param>
-		public void Setup(IMethodCompiler compiler)
+		public void Setup(BaseMethodCompiler compiler)
 		{
 			if (compiler == null)
 				throw new ArgumentNullException(@"compiler");
@@ -109,7 +108,7 @@ namespace Mosa.Compiler.Framework
 			typeModule = compiler.Method.Module;
 			typeSystem = compiler.TypeSystem;
 			typeLayout = compiler.TypeLayout;
-			callingConvention = architecture.GetCallingConvention();
+			callingConvention = architecture.CallingConvention;
 
 			architecture.GetTypeRequirements(BuiltInSigType.IntPtr, out nativePointerSize, out nativePointerAlignment);
 		}
@@ -119,27 +118,17 @@ namespace Mosa.Compiler.Framework
 		#region Methods
 
 		/// <summary>
-		/// Gets a value indicating whether [are exceptions].
+		/// Gets a value indicating whether this instance has exception or finally.
 		/// </summary>
 		/// <value>
-		///   <c>true</c> if [are exceptions]; otherwise, <c>false</c>.
+		/// 	<c>true</c> if this instance has exception or finally; otherwise, <c>false</c>.
 		/// </value>
-		protected bool AreExceptions
+		protected bool HasExceptionOrFinally
 		{
 			get
 			{
 				return methodCompiler.ExceptionClauseHeader.Clauses.Count != 0;
 			}
-		}
-
-		/// <summary>
-		/// Gets block by label
-		/// </summary>
-		/// <param name="label">The label.</param>
-		/// <returns></returns>
-		protected BasicBlock FindBlock(int label)
-		{
-			return methodCompiler.FromLabel(label);
 		}
 
 		/// <summary>
@@ -163,33 +152,39 @@ namespace Mosa.Compiler.Framework
 		}
 
 		/// <summary>
-		/// Creates the block.
+		/// Allocates the virtual register.
 		/// </summary>
-		/// <param name="label">The label.</param>
-		/// <param name="index">The index.</param>
+		/// <param name="type">The type.</param>
 		/// <returns></returns>
-		protected BasicBlock CreateBlock(int label, int index)
+		protected Operand AllocateVirtualRegister(SigType type)
 		{
-			return methodCompiler.CreateBlock(label, index);
-		}
-
-		/// <summary>
-		/// Creates the block.
-		/// </summary>
-		/// <param name="label">The label.</param>
-		/// <returns></returns>
-		protected BasicBlock CreateBlock(int label)
-		{
-			return methodCompiler.CreateBlock(label, -1);
+			return methodCompiler.VirtualRegisterLayout.AllocateVirtualRegister(type);
 		}
 
 		#endregion
 
-		#region Helper Methods
+		#region Trace Helper Methods
 
 		protected void Trace(CompilerEvent compilerEvent, string message)
 		{
-			methodCompiler.InternalLog.CompilerEventListener.SubmitTraceEvent(compilerEvent, message);
+			methodCompiler.InternalTrace.CompilerEventListener.SubmitTraceEvent(compilerEvent, message);
+		}
+
+		protected void Trace(string line)
+		{
+			methodCompiler.InternalTrace.TraceListener.SubmitDebugStageInformation(methodCompiler.Method, Name, line);
+		}
+
+		protected bool IsLogging { get { return methodCompiler.InternalTrace.TraceFilter.IsLogging; } }
+
+		/// <summary>
+		/// Updates the counter.
+		/// </summary>
+		/// <param name="name">The name.</param>
+		/// <param name="count">The count.</param>
+		protected void UpdateCounter(string name, int count)
+		{
+			methodCompiler.Compiler.Counters.UpdateCounter(name, count);
 		}
 
 		#endregion

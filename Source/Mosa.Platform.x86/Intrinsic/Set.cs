@@ -12,7 +12,6 @@ using System.Collections.Generic;
 //using System.Diagnostics;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
 
@@ -21,7 +20,7 @@ namespace Mosa.Platform.x86.Intrinsic
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class Set : IIntrinsicMethod
+	public sealed class Set : IIntrinsicPlatformMethod
 	{
 
 		#region Methods
@@ -31,14 +30,14 @@ namespace Mosa.Platform.x86.Intrinsic
 		/// </summary>
 		/// <param name="context">The context.</param>
 		/// <param name="typeSystem">The type system.</param>
-		void IIntrinsicMethod.ReplaceIntrinsicCall(Context context, ITypeSystem typeSystem, IList<RuntimeParameter> parameters)
+		void IIntrinsicPlatformMethod.ReplaceIntrinsicCall(Context context, ITypeSystem typeSystem, IList<RuntimeParameter> parameters)
 		{
 			Operand dest = context.Operand1;
 			Operand value = context.Operand2;
 
-			RegisterOperand edx = new RegisterOperand(dest.Type, GeneralPurposeRegister.EDX);
-			RegisterOperand eax = new RegisterOperand(value.Type, GeneralPurposeRegister.EAX);
-			MemoryOperand memory = new MemoryOperand(new SigType(context.InvokeTarget.Signature.Parameters[1].Type), GeneralPurposeRegister.EDX, new IntPtr(0));
+			Operand edx = Operand.CreateCPURegister(dest.Type, GeneralPurposeRegister.EDX);
+			Operand eax = Operand.CreateCPURegister(value.Type, GeneralPurposeRegister.EAX);
+			Operand memory = Operand.CreateMemoryAddress(new SigType(context.InvokeTarget.Signature.Parameters[1].Type), GeneralPurposeRegister.EDX, new IntPtr(0));
 
 			context.SetInstruction(X86.Mov, edx, dest);
 			context.AppendInstruction(X86.Mov, eax, value);

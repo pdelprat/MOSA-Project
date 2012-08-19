@@ -4,13 +4,15 @@
  * Licensed under the terms of the New BSD License.
  *
  * Authors:
+ *  Phil Garcia (tgiphil) <phil@thinkedge.com> 
  */
 
-using System;
 using System.Collections.Generic;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
+
+// NOTE: Eventually all temporary stack locals will be converted to virtual registers and 
+//       removed from this StackLayout class except for spill slots
 
 namespace Mosa.Compiler.Framework
 {
@@ -26,11 +28,13 @@ namespace Mosa.Compiler.Framework
 
 		private int stackMemorySize = 0;
 
-		private List<StackOperand> stack = new List<StackOperand>();
-		
-		private ParameterOperand[] parameters;
+		private List<Operand> stack = new List<Operand>();
 
-		private StackSizeOperand stackSizeOperand;
+		private Operand[] parameters;
+
+		private int localVariableCount = 0;
+
+		private int stackLocalTempCount = 0;	
 
 		#endregion // Data members
 
@@ -45,9 +49,24 @@ namespace Mosa.Compiler.Framework
 		public int StackMemorySize { get { return stackMemorySize; } set { stackMemorySize = value; } }
 
 		/// <summary>
-		/// Gets the stack size operand.
+		/// Gets the parameters.
 		/// </summary>
-		public StackSizeOperand StackSizeOperand { get { return stackSizeOperand; } }
+		public Operand[] Parameters { get { return parameters; } }
+
+		/// <summary>
+		/// Gets the stack.
+		/// </summary>
+		public IList<Operand> Stack { get { return stack.AsReadOnly(); } }
+
+		/// <summary>
+		/// Gets the local variable count.
+		/// </summary>
+		public int LocalVariableCount { get { return localVariableCount; } }
+
+		/// <summary>
+		/// Gets the stack local temp count.
+		/// </summary>
+		public int StackLocalTempCount { get { return stackLocalTempCount; } }
 
 		#endregion // Properties
 
@@ -59,8 +78,7 @@ namespace Mosa.Compiler.Framework
 		public StackLayout(IArchitecture architecture, int parameters)
 		{
 			this.architecture = architecture;
-			this.stackSizeOperand = new StackSizeOperand(this);
-			this.parameters = new ParameterOperand[parameters];
+			this.parameters = new Operand[parameters];
 		}
 
 		/// <summary>
@@ -68,15 +86,22 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <param name="type">The type.</param>
 		/// <returns></returns>
-		public StackOperand AllocateStackOperand(SigType type)
+		public Operand AllocateStackOperand(SigType type, bool localVariable)
 		{
-			int stackSlot = stack.Count + 1;
+			Operand stackOperand;
 
-			LocalVariableOperand local = new LocalVariableOperand(architecture.StackFrameRegister, String.Format("L_{0}", stackSlot), stackSlot, type);
+			if (localVariable)
+			{
+				stackOperand = Operand.CreateLocalVariable(type, architecture.StackFrameRegister, ++localVariableCount, null);
+			}
+			else
+			{
+				stackOperand = Operand.CreateStackLocalTemp(type, architecture.StackFrameRegister, ++stackLocalTempCount);
+			}
 
-			stack.Add(local);
+			stack.Add(stackOperand);
 
-			return local;
+			return stackOperand;
 		}
 
 		/// <summary>
@@ -84,7 +109,7 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <param name="slot">The slot.</param>
 		/// <returns></returns>
-		public StackOperand GetStackOperand(int slot)
+		public Operand GetStackOperand(int slot)
 		{
 			return stack[slot];
 		}
@@ -96,9 +121,9 @@ namespace Mosa.Compiler.Framework
 		/// <param name="param">The param.</param>
 		/// <param name="type">The type.</param>
 		/// <returns></returns>
-		public ParameterOperand SetStackParameter(int index, RuntimeParameter param, SigType type)
+		public Operand SetStackParameter(int index, RuntimeParameter param, SigType type)
 		{
-			parameters[index] = new ParameterOperand(architecture.StackFrameRegister, param, type);
+			parameters[index] = Operand.CreateParameter(type, architecture.StackFrameRegister, param, index);
 			return parameters[index];
 		}
 
@@ -107,7 +132,7 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <param name="index">The index.</param>
 		/// <returns></returns>
-		public StackOperand GetStackParameter(int index)
+		public Operand GetStackParameter(int index)
 		{
 			return parameters[index];
 		}

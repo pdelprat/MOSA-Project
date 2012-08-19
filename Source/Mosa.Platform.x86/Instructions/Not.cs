@@ -10,7 +10,6 @@
 using System;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -50,7 +49,7 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if ((destination is RegisterOperand) || (destination is MemoryOperand))
+			if ((destination.IsRegister) || (destination.IsMemoryAddress))
 			{
 				if (IsByte(destination)) return MR_8;
 				if (IsChar(destination)) return MR_16;
@@ -58,6 +57,17 @@ namespace Mosa.Platform.x86.Instructions
 			}
 
 			throw new ArgumentException(@"No opcode for operand type.");
+		}
+
+		/// <summary>
+		/// Emits the specified platform instruction.
+		/// </summary>
+		/// <param name="context">The context.</param>
+		/// <param name="emitter">The emitter.</param>
+		protected override void Emit(Context context, MachineCodeEmitter emitter)
+		{
+			OpCode opCode = ComputeOpCode(context.Result, null, null);
+			emitter.Emit(opCode, context.Result, null, null);
 		}
 
 		/// <summary>

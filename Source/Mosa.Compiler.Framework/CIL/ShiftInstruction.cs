@@ -9,7 +9,6 @@
 
 using System;
 using System.Diagnostics;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Compiler.Framework.CIL
 {
@@ -55,7 +54,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
@@ -64,7 +63,7 @@ namespace Mosa.Compiler.Framework.CIL
 			if (StackTypeCode.Unknown == result)
 				throw new InvalidOperationException(@"Invalid stack state for pairing (" + ctx.Operand1.StackType + ", " + ctx.Operand2.StackType + ")");
 
-			ctx.Result = compiler.CreateTemporary(Operand.SigTypeFromStackType(result));
+			ctx.Result = compiler.CreateVirtualRegister(Operand.SigTypeFromStackType(result));
 		}
 
 		/// <summary>

@@ -85,6 +85,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>ComparisonTests.cs</LastGenOutput>
     </None>
+    <None Include="ForeachTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ForeachTests.cs</LastGenOutput>
+    </None>
+    <None Include="StaticFieldTests.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>StaticFieldTests.cs</LastGenOutput>
+    </None>
     <None Include="GenericCallTests.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>GenericCallTests.cs</LastGenOutput>
@@ -93,7 +101,14 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>StructTests.cs</LastGenOutput>
     </None>
+    <Compile Include="SpecificTests.cs" />
+    <Compile Include="ForeachTests.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ForeachTests.tt</DependentUpon>
+    </Compile>
     <Compile Include="DelegateTests.cs" />
+    <Compile Include="ExceptionHandlingTests.cs" />
     <Compile Include="GenericCallTests.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -116,6 +131,11 @@
     <Compile Include="IsInstTests.cs" />
     <Compile Include="FibonacciTests.cs" />
     <Compile Include="GenericInterfaceTests.cs" />
+    <Compile Include="StaticFieldTests.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>StaticFieldTests.tt</DependentUpon>
+    </Compile>
     <Compile Include="SwitchTests.cs">
       <DependentUpon>SwitchTests.tt</DependentUpon>
       <AutoGen>True</AutoGen>
@@ -133,7 +153,6 @@
     </Compile>
     <Compile Include="WhileTests.cs" />
     <Compile Include="StringTests.cs" />
-    <Compile Include="ExceptionHandlingTests.cs" />
     <Compile Include="SingleTests.cs" />
     <Compile Include="DoubleTests.cs" />
     <Compile Include="Int16Tests.cs" />

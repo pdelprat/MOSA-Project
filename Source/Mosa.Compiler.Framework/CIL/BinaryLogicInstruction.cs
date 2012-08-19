@@ -8,9 +8,8 @@
  */
 
 using System;
-using Mosa.Compiler.Framework.Operands;
-using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.Metadata;
+using Mosa.Compiler.Metadata.Signatures;
 
 namespace Mosa.Compiler.Framework.CIL
 {
@@ -57,7 +56,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
@@ -83,7 +82,7 @@ namespace Mosa.Compiler.Framework.CIL
 			if (result == StackTypeCode.Unknown)
 				throw new InvalidOperationException (@"Invalid stack result of instruction: " + result.ToString () + " (" + ctx.Operand1.ToString () + ")");
 
-			ctx.Result = compiler.CreateTemporary(Operand.SigTypeFromStackType(result));
+			ctx.Result = compiler.CreateVirtualRegister(Operand.SigTypeFromStackType(result));
 		}
 
 		private StackTypeCode FromSigType (CilElementType type)

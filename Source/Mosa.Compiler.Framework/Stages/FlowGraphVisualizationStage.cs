@@ -63,8 +63,8 @@ namespace Mosa.Compiler.Framework.Stages
 
 			++methodCount[methodCompiler.Method.Name];
 
-			// Retreive the first block
-			firstBlock = FindBlock(-1);
+			// Retrieve the first block
+			firstBlock = basicBlocks.PrologueBlock;
 
 			workList = new Stack<BasicBlock>();
 			workList.Push(firstBlock);
@@ -76,8 +76,6 @@ namespace Mosa.Compiler.Framework.Stages
 			methodName = methodName.Replace("$", "");
 			methodName = methodName.Replace(".", "");
 			
-			//IPipelineStage previousStage = methodCompiler.GetPreviousStage(typeof(IMethodCompilerStage));
-			//BROKE THIS:
 			IPipelineStage previousStage = methodCompiler.GetStage(typeof(IMethodCompilerStage));
 
 			dotFile.WriteLine("subgraph cluster" + methodName + "_FlowGraph {");
@@ -103,7 +101,7 @@ namespace Mosa.Compiler.Framework.Stages
 
 				for (Context ctx = new Context(instructionSet, block); !ctx.EndOfInstruction; ctx.GotoNext())
 				{
-					if (ctx.Instruction == null)
+					if (ctx.IsEmpty)
 						continue;
 
 					string color;

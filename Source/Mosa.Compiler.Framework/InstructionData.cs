@@ -8,10 +8,9 @@
  *  Michael Ruck (grover) <sharpos@michaelruck.de>
  */
 
-using System;
 using System.Diagnostics;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
+using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
 
 namespace Mosa.Compiler.Framework
@@ -26,7 +25,7 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Holds the instruction type of this instruction
 		/// </summary>
-		public IInstruction Instruction;
+		public BaseInstruction Instruction;
 
 		/// <summary>
 		/// Label of the instruction
@@ -54,20 +53,9 @@ namespace Mosa.Compiler.Framework
 		public Operand Result;
 
 		/// <summary>
-		///  Holds the branch target information
+		///  Holds the branch targets
 		/// </summary>
-		public IBranch Branch;
-
-		/// <summary>
-		/// Gets or sets the offset of the instruction.
-		/// </summary>
-		/// <remarks>
-		/// Offsets are used by branch instructions to define their target. During basic block
-		/// building these offsets are used to insert labels at appropriate positions and the
-		/// jumps or modified to target one of these labels. During code generation, the offset
-		/// can be used to indicate native code offsets.
-		/// </remarks>
-		public int Offset;
+		public int[] BranchTargets;
 
 		/// <summary>
 		/// Holds the "other" object
@@ -82,15 +70,6 @@ namespace Mosa.Compiler.Framework
 		#endregion // Data members
 
 		#region Properties
-
-		/// <summary>
-		/// Gets or sets the ignored attribute
-		/// </summary>
-		public bool Ignore
-		{
-			get { return (packed & 0x01) == 0x01; }
-			set { if (value) packed = packed | 0x01; else packed = (uint)(packed & ~0x1); }
-		}
 
 		/// <summary>
 		/// Gets or sets a value indicating whether this instance has a prefix.
@@ -121,7 +100,7 @@ namespace Mosa.Compiler.Framework
 			get { return (packed & 0x08) == 0x08; }
 			set { if (value) packed = packed | 0x08; else packed = (uint)(packed & ~0x08); }
 		}
-		
+
 		/// <summary>
 		/// Gets or sets the number of operand results
 		/// </summary>
@@ -169,12 +148,22 @@ namespace Mosa.Compiler.Framework
 		}
 
 		/// <summary>
-		/// Gets or sets the token.
+		/// Gets or sets the runtime field.
 		/// </summary>
-		/// <value>The token.</value>
-		public Token Token
+		/// <value>The runtime field.</value>
+		public RuntimeType RuntimeType
 		{
-			get { return (Token)Other; }
+			get { return Other as RuntimeType; }
+			set { Other = value; }
+		}
+
+		/// <summary>
+		/// Gets or sets the sig type.
+		/// </summary>
+		/// <value>The runtime field.</value>
+		public SigType SigType
+		{
+			get { return Other as SigType; }
 			set { Other = value; }
 		}
 
@@ -198,16 +187,6 @@ namespace Mosa.Compiler.Framework
 			set { Other = value; }
 		}
 
-		/// <summary>
-		/// Holds the literal data.
-		/// </summary>
-		/// <value>The token.</value>
-		public IR.LiteralData LiteralData
-		{
-			get { return (IR.LiteralData)Other; }
-			set { Other = value; }
-		}
-
 		#endregion // Properties
 
 		#region Methods
@@ -218,14 +197,13 @@ namespace Mosa.Compiler.Framework
 		public void Clear()
 		{
 			this.Label = -1;
-			this.Offset = 0;
 			this.Instruction = null;
 			this.Operand1 = null;
 			this.Operand2 = null;
 			this.Operand3 = null;
 			this.Result = null;
 			this.packed = 0;
-			this.Branch = null;
+			this.BranchTargets = null;
 			this.Other = null;
 			this.BranchHint = false;
 		}
@@ -236,12 +214,10 @@ namespace Mosa.Compiler.Framework
 		public void ClearAbbreviated()
 		{
 			this.Label = -1;
-			this.Offset = 0;
 			this.Instruction = null;
-			this.Ignore = true;
 			this.OperandCount = 0;
 			this.ResultCount = 0;
-			this.Branch = null;
+			this.BranchTargets = null;
 			this.Other = null;
 		}
 
@@ -276,6 +252,15 @@ namespace Mosa.Compiler.Framework
 		}
 
 		/// <summary>
+		/// Allocates the branch targets.
+		/// </summary>
+		/// <param name="targets">The targets.</param>
+		public void AllocateBranchTargets(uint targets)
+		{
+			BranchTargets = new int[targets];
+		}
+
+		/// <summary>
 		/// Returns a <see cref="System.String"/> that represents this instance.
 		/// </summary>
 		/// <returns>
@@ -291,10 +276,10 @@ namespace Mosa.Compiler.Framework
 			if (Label >= 0)
 				str = Label.ToString() + ": " + str;
 
-			if (Branch != null)
+			if (BranchTargets != null)
 			{
 				str = str + " (";
-				foreach (int branch in Branch.Targets)
+				foreach (int branch in BranchTargets)
 					str = str + branch.ToString() + ",";
 
 				str = str.Trim(',') + ")";

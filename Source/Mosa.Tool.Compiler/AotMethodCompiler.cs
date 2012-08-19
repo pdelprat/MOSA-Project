@@ -11,11 +11,6 @@
 
 using Mosa.Compiler.Framework;
 using Mosa.Compiler.Framework.Stages;
-using Mosa.Compiler.Framework.Platform;
-using Mosa.Compiler.Framework.CIL;
-using Mosa.Compiler.Framework.IR;
-using Mosa.Compiler.InternalTrace;
-using Mosa.Compiler.Linker;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.TypeSystem;
 
@@ -32,47 +27,46 @@ namespace Mosa.Tool.Compiler
 		/// <summary>
 		/// Initializes a new instance of the <see cref="AotMethodCompiler"/> class.
 		/// </summary>
-		public AotMethodCompiler(AssemblyCompiler assemblyCompiler, ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method, CompilerOptions compilerOptions)
-			: base(assemblyCompiler, type, method, null, compilationScheduler)
+		/// <param name="compiler">The compiler.</param>
+		/// <param name="method">The method.</param>
+		public AotMethodCompiler(BaseCompiler compiler, RuntimeMethod method)
+			: base(compiler, method, null)
 		{
-			this.Pipeline.AddRange(
-				new IMethodCompilerStage[] 
-				{
-					new DecodingStage(),
-					new BasicBlockBuilderStage(),
-					new ExceptionPrologueStage(),
-					new OperandDeterminationStage(),
-					//new SingleUseMarkerStage(),
-					new StaticAllocationResolutionStage(),
-					new CILTransformationStage(),
+			var compilerOptions = compiler.CompilerOptions;
 
-					(compilerOptions.EnableSSA) ? new DominanceCalculationStage() : null,
-					(compilerOptions.EnableSSA) ? new PhiPlacementStage() : null,
-					(compilerOptions.EnableSSA) ? new EnterSSAStage() : null,
-
-					(compilerOptions.EnableSSA) ? new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PreFolding) : null,
-					(compilerOptions.EnableSSA) ? new ConstantFoldingStage() : null,
-					(compilerOptions.EnableSSA) ? new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PostFolding) : null,
-
-					(compilerOptions.EnableSSA) ? new LeaveSSA() : null,
+			Pipeline.AddRange(new IMethodCompilerStage[] {
+				new CILDecodingStage(),
+				new BasicBlockBuilderStage(),
+				new ExceptionPrologueStage(),
+				new OperandAssignmentStage(),
+				new StaticAllocationResolutionStage(),
+				new CILTransformationStage(),
 					
-					new StrengthReductionStage(),
+				new IRCheckStage(),
 
-					new StackLayoutStage(),
-					new PlatformStubStage(),
-					//new OperandUsageAnalyzerStage(),
-
-					new LoopAwareBlockOrderStage(),
-					//new SimpleTraceBlockOrderStage(),
-					//new ReverseBlockOrderStage(),	
-					new LocalCSE(),
-					new CodeGenerationStage(),
-				});
+				(compilerOptions.EnableSSA && compilerOptions.EnableSSAOptimizations) ? new LocalVariablePromotionStage() : null,
+				(compilerOptions.EnableSSA) ? new EdgeSplitStage() : null,
+				(compilerOptions.EnableSSA) ? new DominanceCalculationStage() : null,
+				(compilerOptions.EnableSSA) ? new PhiPlacementStage() : null,
+				(compilerOptions.EnableSSA) ? new EnterSSAStage() : null,
+				(compilerOptions.EnableSSA && compilerOptions.EnableSSAOptimizations) ? new SSAOptimizations() : null,
+				(compilerOptions.EnableSSA) ? new LeaveSSA() : null,
+					
+				new StackLayoutStage(),
+				new PlatformIntrinsicTransformationStage(),
+				new PlatformStubStage(),
+				new LoopAwareBlockOrderStage(),
+				//new SimpleTraceBlockOrderStage(),
+				//new ReverseBlockOrderStage(),	
+				//new LocalCSE(),
+				new CodeGenerationStage(),
+				//new RegisterUsageAnalyzerStage(),
+			});
 		}
 
 		#endregion // Construction
 
-		#region MethodCompilerBase Overrides
+		#region BaseMethodCompiler Overrides
 
 		/// <summary>
 		/// Called after the method compiler has finished compiling the method.
@@ -83,13 +77,13 @@ namespace Mosa.Tool.Compiler
 			const MethodAttributes attrs = MethodAttributes.SpecialName | MethodAttributes.RTSpecialName | MethodAttributes.Static;
 			if ((Method.Attributes & attrs) == attrs && Method.Name == ".cctor")
 			{
-				var typeInitializerSchedulerStage = AssemblyCompiler.Pipeline.FindFirst<ITypeInitializerSchedulerStage>();
+				var typeInitializerSchedulerStage = Compiler.Pipeline.FindFirst<ITypeInitializerSchedulerStage>();
 				typeInitializerSchedulerStage.Schedule(Method);
 			}
 
 			base.EndCompile();
 		}
 
-		#endregion // MethodCompilerBase Overrides
+		#endregion // BaseMethodCompiler Overrides
 	}
 }

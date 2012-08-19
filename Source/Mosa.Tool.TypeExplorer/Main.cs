@@ -1,7 +1,18 @@
-﻿using System;
+﻿/*
+ * (c) 2012 MOSA - The Managed Operating System Alliance
+ *
+ * Licensed under the terms of the New BSD License.
+ *
+ * Authors:
+ *  Phil Garcia (tgiphil) <phil@thinkedge.com>
+ */
+
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Windows.Forms;
+using Mosa.Compiler.Common;
 using Mosa.Compiler.InternalTrace;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Loader;
@@ -11,31 +22,39 @@ using Mosa.Compiler.TypeSystem.Generic;
 
 namespace Mosa.Tool.TypeExplorer
 {
-	public partial class Main : Form, ICompilerEventListener, IInstructionTraceListener
+	public partial class Main : Form, ICompilerEventListener, ITraceListener
 	{
 		private CodeForm form = new CodeForm();
 		private IInternalTrace internalTrace = new BasicInternalTrace();
 		private ITypeSystem typeSystem = new TypeSystem();
-		private ConfigurableInstructionTraceFilter filter = new ConfigurableInstructionTraceFilter();
+		private ConfigurableTraceFilter filter = new ConfigurableTraceFilter();
 		private ITypeLayout typeLayout;
 		private DateTime compileStartTime;
-		private string currentStageLog;
-		private string[] currentStageLogLines;
+		private StringBuilder currentInstructionLog;
+		private string[] currentInstructionLogLines;
 
 		private Dictionary<RuntimeMethod, MethodStages> methodStages = new Dictionary<RuntimeMethod, MethodStages>();
 
 		private class MethodStages
 		{
 			public List<string> OrderedStageNames = new List<string>();
-			public Dictionary<string, string> Logs = new Dictionary<string, string>();
+			public List<string> OrderedDebugStageNames = new List<string>();
+			public Dictionary<string, StringBuilder> InstructionLogs = new Dictionary<string, StringBuilder>();
+			public Dictionary<string, StringBuilder> DebugLogs = new Dictionary<string, StringBuilder>();
 		}
+
+		private StringBuilder compileLog = new StringBuilder();
 
 		public Main()
 		{
 			InitializeComponent();
 			internalTrace.CompilerEventListener = this;
-			internalTrace.InstructionTraceListener = this;
-			internalTrace.InstructionTraceFilter = filter;
+			internalTrace.TraceListener = this;
+			internalTrace.TraceFilter = filter;
+
+			filter.MethodMatch = MatchType.Any;
+			filter.StageMatch = MatchType.Exclude;
+			filter.Stage = "PlatformStubStage|ExceptionLayoutStage|DominanceCalculationStage|CodeGenerationStage";
 		}
 
 		private void Main_Load(object sender, EventArgs e)
@@ -58,11 +77,6 @@ namespace Mosa.Tool.TypeExplorer
 		{
 			if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
 			{
-				if (Path.GetFileName(openFileDialog.FileName) == "Mosa.Test.Collection.dll")
-				{
-					includeTestKorlibToolStripMenuItem.Checked = true;
-				}
-
 				LoadAssembly(openFileDialog.FileName);
 			}
 		}
@@ -104,8 +118,13 @@ namespace Mosa.Tool.TypeExplorer
 			return "[" + TokenToString(type.Token) + "] " + type.Namespace + Type.Delimiter + type.Name;
 		}
 
-		protected void LoadAssembly(string filename)
+		public void LoadAssembly(string filename)
 		{
+			if (Path.GetFileName(filename) == "Mosa.Test.Collection.dll")
+			{
+				includeTestKorlibToolStripMenuItem.Checked = true;
+			}
+
 			LoadAssembly(filename, includeTestKorlibToolStripMenuItem.Checked, cbPlatform.Text);
 		}
 
@@ -257,10 +276,10 @@ namespace Mosa.Tool.TypeExplorer
 				toolStripStatusLabel1.GetCurrentParent().Refresh();
 			}
 
-			tbResult.AppendText(String.Format("{0:0.00}", (DateTime.Now - compileStartTime).TotalSeconds) + " secs: " + compilerStage.ToText() + ": " + info + "\n");
+			compileLog.Append(String.Format("{0:0.00}", (DateTime.Now - compileStartTime).TotalSeconds) + " secs: " + compilerStage.ToText() + ": " + info + "\n");
 		}
 
-		void IInstructionTraceListener.NotifyNewInstructionTrace(RuntimeMethod method, string stage, string log)
+		void ITraceListener.SubmitInstructionTraceInformation(RuntimeMethod method, string stage, string log)
 		{
 			MethodStages methodStage;
 
@@ -270,8 +289,41 @@ namespace Mosa.Tool.TypeExplorer
 				methodStages.Add(method, methodStage);
 			}
 
-			methodStage.OrderedStageNames.Add(stage);
-			methodStage.Logs.Add(stage, log);
+			methodStage.OrderedStageNames.AddIfNew(stage);
+
+			StringBuilder stringbuilder;
+
+			if (methodStage.InstructionLogs.TryGetValue(stage, out stringbuilder))
+			{
+				stringbuilder.Append(log);
+			}
+			else
+			{
+				stringbuilder = new StringBuilder(log);
+				methodStage.InstructionLogs.Add(stage, stringbuilder);
+			}
+		}
+
+		void ITraceListener.SubmitDebugStageInformation(RuntimeMethod method, string stage, string line)
+		{
+			MethodStages methodStage;
+
+			if (!methodStages.TryGetValue(method, out methodStage))
+			{
+				methodStage = new MethodStages();
+				methodStages.Add(method, methodStage);
+			}
+
+			methodStage.OrderedDebugStageNames.AddIfNew(stage);
+
+			StringBuilder stringbuilder;
+
+			if (!methodStage.DebugLogs.TryGetValue(stage, out stringbuilder))
+			{
+				stringbuilder = new StringBuilder(line.Length + 2);
+				methodStage.DebugLogs.Add(stage, stringbuilder);
+			}
+			stringbuilder.AppendLine(line);
 		}
 
 		void Compile()
@@ -282,7 +334,9 @@ namespace Mosa.Tool.TypeExplorer
 			filter.IsLogging = true;
 			filter.MethodMatch = MatchType.Any;
 
-			ExplorerAssemblyCompiler.Compile(typeSystem, typeLayout, internalTrace, cbPlatform.Text, enableSSAToolStripMenuItem.Checked);
+			ExplorerCompiler.Compile(typeSystem, typeLayout, internalTrace, cbPlatform.Text, enableSSAToolStripMenuItem.Checked);
+			tabControl1.SelectedTab = tabPage1;
+			rbOtherResult.Text = compileLog.ToString();
 		}
 
 		private void nowToolStripMenuItem_Click(object sender, EventArgs e)
@@ -320,11 +374,19 @@ namespace Mosa.Tool.TypeExplorer
 				cbStages.Items.Add(stage);
 
 			cbStages.SelectedIndex = 0;
+
+			cbDebugStages.Items.Clear();
+
+			foreach (string stage in methodStage.OrderedDebugStageNames)
+				cbDebugStages.Items.Add(stage);
+
+			if (cbDebugStages.Items.Count > 0)
+				cbDebugStages.SelectedIndex = 0;
 		}
 
 		private void cbStages_SelectedIndexChanged(object sender, EventArgs e)
 		{
-			currentStageLog = string.Empty;
+			currentInstructionLog = null;
 
 			var node = GetCurrentNode<ViewNode<RuntimeMethod>>();
 
@@ -337,17 +399,19 @@ namespace Mosa.Tool.TypeExplorer
 			{
 				string stage = cbStages.SelectedItem.ToString();
 
-				if (currentStageLog == methodStage.Logs[stage])
+				if (currentInstructionLog != null && currentInstructionLog.Equals(methodStage.InstructionLogs[stage]))
 					return;
 
-				currentStageLog = methodStage.Logs[stage];
+				currentInstructionLog = methodStage.InstructionLogs[stage];
 
-				currentStageLogLines = currentStageLog.Split('\n');
+				currentInstructionLogLines = currentInstructionLog.ToString().Split('\n');
+
+				var previousItemLabel = cbLabels.SelectedItem;
 
 				cbLabels.Items.Clear();
 				cbLabels.Items.Add("All");
 
-				foreach (string line in currentStageLogLines)
+				foreach (string line in currentInstructionLogLines)
 				{
 					if (line.StartsWith("Block #"))
 					{
@@ -355,8 +419,32 @@ namespace Mosa.Tool.TypeExplorer
 					}
 				}
 
-				cbLabels.SelectedIndex = 0;
+				if (previousItemLabel != null && cbLabels.Items.Contains(previousItemLabel))
+					cbLabels.SelectedItem = previousItemLabel;
+				else
+					cbLabels.SelectedIndex = 0;
+
 				cbLabels_SelectedIndexChanged(null, null);
+			}
+		}
+
+		private void cbDebugStages_SelectedIndexChanged(object sender, EventArgs e)
+		{
+			var node = GetCurrentNode<ViewNode<RuntimeMethod>>();
+
+			if (node == null)
+				return;
+
+			MethodStages methodStage;
+
+			if (methodStages.TryGetValue(node.Type, out methodStage))
+			{
+				string stage = cbDebugStages.SelectedItem.ToString();
+
+				if (methodStage.DebugLogs.ContainsKey(stage))
+					rbOtherResult.Text = methodStage.DebugLogs[stage].ToString();
+				else
+					rbOtherResult.Text = string.Empty;
 			}
 		}
 
@@ -459,7 +547,7 @@ namespace Mosa.Tool.TypeExplorer
 			tbResult.Text = string.Empty;
 			toolStripStatusLabel1.Text = string.Empty;
 
-			if (string.IsNullOrEmpty(currentStageLog))
+			if (currentInstructionLog == null)
 				return;
 
 			var node = GetCurrentNode<ViewNode<RuntimeMethod>>();
@@ -471,7 +559,7 @@ namespace Mosa.Tool.TypeExplorer
 
 			if (cbLabels.SelectedIndex == 0)
 			{
-				tbResult.Text = currentStageLog;
+				tbResult.Text = currentInstructionLog.ToString();
 				return;
 			}
 
@@ -479,7 +567,7 @@ namespace Mosa.Tool.TypeExplorer
 
 			bool inBlock = false;
 
-			foreach (string line in currentStageLogLines)
+			foreach (string line in currentInstructionLogLines)
 			{
 				if ((!inBlock) && line.StartsWith("Block #") && line.EndsWith(blockLabel))
 				{

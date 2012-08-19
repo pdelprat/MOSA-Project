@@ -7,13 +7,9 @@
  *  Phil Garcia (tgiphil) <phil@thinkedge.com>
 */
 
-using System.Collections;
-using System.Collections.Generic;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
-using Mosa.Compiler.Framework;
 
 namespace Mosa.Compiler.Framework.Stages
 {
@@ -38,14 +34,14 @@ namespace Mosa.Compiler.Framework.Stages
 
 					RuntimeType type = methodCompiler.Method.Module.GetType(typeToken);
 
-					var block = FindBlock(clause.HandlerOffset);
+					var block = basicBlocks.GetByLabel(clause.HandlerOffset);
 
 					var context = new Context(instructionSet, block).InsertBefore();
 
 					SigType sigType = new ClassSigType(typeToken);
-					Operand exceptionObject = methodCompiler.CreateTemporary(sigType);
+					Operand exceptionObject = methodCompiler.CreateVirtualRegister(sigType);
 
-					context.SetInstruction(IR.Instruction.ExceptionPrologueInstruction, exceptionObject);
+					context.SetInstruction(IR.IRInstruction.ExceptionPrologue, exceptionObject);
 				}	
 			}
 		}

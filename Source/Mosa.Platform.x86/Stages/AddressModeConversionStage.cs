@@ -10,10 +10,8 @@
  */
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
+using Mosa.Compiler.Framework.IR;
 using Mosa.Compiler.Metadata;
-using CIL = Mosa.Compiler.Framework.CIL;
-using IR = Mosa.Compiler.Framework.IR;
 
 namespace Mosa.Platform.x86.Stages
 {
@@ -32,10 +30,9 @@ namespace Mosa.Platform.x86.Stages
 		{
 			foreach (BasicBlock block in basicBlocks)
 				for (Context ctx = CreateContext(block); !ctx.EndOfInstruction; ctx.GotoNext())
-					if (ctx.Instruction != null)
-						if (!ctx.Ignore && ctx.OperandCount == 2 && ctx.ResultCount == 1)
-							if (ctx.Instruction is CIL.ArithmeticInstruction || ctx.Instruction is IR.ThreeOperandInstruction)
-								ThreeTwoAddressConversion(ctx);
+					if (!ctx.IsEmpty)
+						if (ctx.OperandCount == 2 && ctx.ResultCount == 1)
+							ThreeTwoAddressConversion(ctx);
 		}
 
 		#endregion // IMethodCompilerStage Members
@@ -46,32 +43,27 @@ namespace Mosa.Platform.x86.Stages
 		/// <param name="ctx">The conversion context.</param>
 		private static void ThreeTwoAddressConversion(Context ctx)
 		{
+			if (!(ctx.Instruction is BaseIRInstruction))
+				return;
+
+			if (ctx.Instruction is IntegerCompare
+				|| ctx.Instruction is FloatCompare
+				|| ctx.Instruction is Load
+				|| ctx.Instruction is LoadZeroExtended
+				|| ctx.Instruction is LoadSignExtended
+				|| ctx.Instruction is Store
+				|| ctx.Instruction is Call
+				|| ctx.Instruction is ZeroExtendedMove
+				|| ctx.Instruction is SignExtendedMove)
+				return;
+
 			Operand result = ctx.Result;
 			Operand op1 = ctx.Operand1;
 			Operand op2 = ctx.Operand2;
 
-			if (ctx.Instruction is IR.IntegerCompareInstruction
-				|| ctx.Instruction is IR.FloatingPointCompareInstruction
-				|| ctx.Instruction is IR.LoadInstruction
-				|| ctx.Instruction is IR.StoreInstruction)
-			{
-				return;
-			}
-
-			if (ctx.Instruction is CIL.MulInstruction)
-			{
-				if (!(op1 is ConstantOperand) && (op2 is ConstantOperand))
-				{
-					Operand temp = op1;
-					op1 = op2;
-					op2 = temp;
-				}
-			}
-
 			// Create registers for different data types
-			RegisterOperand eax = new RegisterOperand(op1.Type, op1.StackType == StackTypeCode.F ? (Register)SSE2Register.XMM0 : GeneralPurposeRegister.EAX);
-			RegisterOperand storeOperand = new RegisterOperand(result.Type, result.StackType == StackTypeCode.F ? (Register)SSE2Register.XMM0 : GeneralPurposeRegister.EAX);
-			//    RegisterOperand eaxL = new RegisterOperand(op1.Type, GeneralPurposeRegister.EAX);
+			Operand eax = Operand.CreateCPURegister(op1.Type, op1.StackType == StackTypeCode.F ? (Register)SSE2Register.XMM0 : GeneralPurposeRegister.EAX);
+			Operand storeOperand = Operand.CreateCPURegister(result.Type, result.StackType == StackTypeCode.F ? (Register)SSE2Register.XMM0 : GeneralPurposeRegister.EAX);
 
 			ctx.Result = storeOperand;
 			ctx.Operand1 = op2;
@@ -80,10 +72,10 @@ namespace Mosa.Platform.x86.Stages
 
 			if (op1.StackType != StackTypeCode.F)
 			{
-				if (IsSigned(op1) && !(op1 is ConstantOperand))
-					ctx.InsertBefore().SetInstruction(IR.Instruction.SignExtendedMoveInstruction, eax, op1);
-				else if (IsUnsigned(op1) && !(op1 is ConstantOperand))
-					ctx.InsertBefore().SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, eax, op1);
+				if (IsSigned(op1) && !(op1.IsConstant))
+					ctx.InsertBefore().SetInstruction(IRInstruction.SignExtendedMove, eax, op1);
+				else if (IsUnsigned(op1) && !(op1.IsConstant))
+					ctx.InsertBefore().SetInstruction(IRInstruction.ZeroExtendedMove, eax, op1);
 				else
 					ctx.InsertBefore().SetInstruction(X86.Mov, eax, op1);
 			}
@@ -91,7 +83,7 @@ namespace Mosa.Platform.x86.Stages
 			{
 				if (op1.Type.Type == CilElementType.R4)
 				{
-					if (op1 is ConstantOperand)
+					if (op1.IsConstant)
 					{
 						Context before = ctx.InsertBefore();
 						before.SetInstruction(X86.Mov, eax, op1);

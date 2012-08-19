@@ -9,8 +9,6 @@
 
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
-using Mosa.Compiler.Framework.Platform;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -42,22 +40,18 @@ namespace Mosa.Platform.x86.Instructions
 		{
 			if (context.OperandCount == 0)
 			{
-				emitter.EmitBranch(LabelCall, context.Branch.Targets[0]);
+				emitter.EmitBranch(LabelCall, context.BranchTargets[0]);
 				return;
 			}
 
-			Operand destinationOperand = context.Operand1;
-			SymbolOperand destinationSymbol = destinationOperand as SymbolOperand;
-
-			if (destinationSymbol != null)
+			if (context.Operand1.IsSymbol)
 			{
 				emitter.WriteByte(0xE8);
-				emitter.Call(destinationSymbol);
+				emitter.Call(context.Operand1);
 			}
 			else
 			{
-				RegisterOperand registerOperand = destinationOperand as RegisterOperand;
-				emitter.Emit(RegCall, registerOperand);
+				emitter.Emit(RegCall, context.Operand1);
 			}
 		}
 

@@ -30,7 +30,7 @@ namespace Mosa.Compiler.Linker
 		/// <returns></returns>
 		/// <exception cref="System.ArgumentNullException"><paramref name="compiler"/> or <paramref name="methodName"/>  is null.</exception>
 		/// <exception cref="System.ArgumentException"><paramref name="methodName"/> is invalid.</exception>
-		public static LinkerGeneratedMethod Compile(AssemblyCompiler compiler, string methodName, ITypeSystem typeSystem)
+		public static LinkerGeneratedMethod Compile(BaseCompiler compiler, string methodName, ITypeSystem typeSystem)
 		{
 			return Compile(compiler, methodName, null, typeSystem);
 		}
@@ -44,7 +44,7 @@ namespace Mosa.Compiler.Linker
 		/// <returns></returns>
 		/// <exception cref="System.ArgumentNullException"><paramref name="compiler"/>, <paramref name="methodName"/> or <paramref name="instructionSet"/> is null.</exception>
 		/// <exception cref="System.ArgumentException"><paramref name="methodName"/> is invalid.</exception>
-		public static LinkerGeneratedMethod Compile(AssemblyCompiler compiler, string methodName, InstructionSet instructionSet, ITypeSystem typeSystem)
+		public static LinkerGeneratedMethod Compile(BaseCompiler compiler, string methodName, InstructionSet instructionSet, ITypeSystem typeSystem)
 		{
 			if (compiler == null)
 				throw new ArgumentNullException(@"compiler");
@@ -60,6 +60,8 @@ namespace Mosa.Compiler.Linker
 			{
 				compilerGeneratedType = new LinkerGeneratedType(typeSystem.InternalTypeModule, @"Mosa.Tools.Compiler", @"LinkerGenerated", null);
 				typeSystem.AddInternalType(compilerGeneratedType);
+
+				//compiler.Scheduler.TrackTypeAllocated(compilerGeneratedType);
 			}
 
 			MethodSignature signature = new MethodSignature(BuiltInSigType.Void, new SigType[0]);
@@ -69,8 +71,11 @@ namespace Mosa.Compiler.Linker
 			LinkerGeneratedMethod method = new LinkerGeneratedMethod(typeSystem.InternalTypeModule, "<$>" + methodName, compilerGeneratedType, signature);
 			compilerGeneratedType.AddMethod(method);
 
-			LinkerMethodCompiler methodCompiler = new LinkerMethodCompiler(compiler, compiler.Pipeline.FindFirst<ICompilationSchedulerStage>(), method, instructionSet);
+			//compiler.Scheduler.TrackMethodInvoked(method);
+
+			LinkerMethodCompiler methodCompiler = new LinkerMethodCompiler(compiler, method, instructionSet);
 			methodCompiler.Compile();
+
 			return method;
 		}
 

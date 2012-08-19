@@ -61,109 +61,67 @@ namespace Mosa.Kernel.x86
 		/// Gets the second.
 		/// </summary>
 		/// <value>The second.</value>
-		public byte Second
-		{
-			get
-			{
-				return Get(0);
-			}
-		}
+		public byte Second { get { return Get(0); } }
 
 		/// <summary>
 		/// Gets the minute.
 		/// </summary>
 		/// <value>The minute.</value>
-		public byte Minute
-		{
-			get
-			{
-				return Get(2);
-			}
-		}
+		public byte Minute { get { return Get(2); } }
 
 		/// <summary>
 		/// Gets the hour.
 		/// </summary>
 		/// <value>The hour.</value>
-		public byte Hour
-		{
-			get
-			{
-				return Get(4);
-			}
-		}
+		public byte Hour { get { return Get(4); } }
 
 		/// <summary>
 		/// Gets the year.
 		/// </summary>
 		/// <value>The year.</value>
-		public byte Year
-		{
-			get
-			{
-				return Get(9);
-			}
-		}
+		public byte Year { get { return Get(9); } }
 
 		/// <summary>
 		/// Gets the month.
 		/// </summary>
 		/// <value>The month.</value>
-		public byte Month
-		{
-			get
-			{
-				return Get(8);
-			}
-		}
+		public byte Month { get { return Get(8); } }
 
 		/// <summary>
 		/// Gets the day.
 		/// </summary>
 		/// <value>The day.</value>
-		public byte Day
-		{
-			get
-			{
-				return Get(7);
-			}
-		}
+		public byte Day { get { return Get(7); } }
 
 		/// <summary>
 		/// Gets the BCD.
 		/// </summary>
 		/// <value>The BCD.</value>
-		public bool BCD
-		{
-			get
-			{
-				return (Get(0x0B) & 0x04) == 0x00;
-			}
-		}
+		public bool BCD { get { return (Get(0x0B) & 0x04) == 0x00; } }
 
 		/// <summary>
 		/// Dump multiboot info.
 		/// </summary>
-		public void Dump(uint row, uint col)
+		public void Dump(ConsoleSession console, uint row, uint col)
 		{
-			Screen.Row = row;
-			Screen.Column = col;
-			Screen.Color = 0x0A;
-			Screen.Write(@"CMOS:");
-			Screen.NextLine();
+			console.Row = row;
+			console.Column = col;
+			console.Color = 0x0A;
+			console.Write(@"CMOS:");
+			console.WriteLine();
 
 			for (byte i = 0; i < 19; i++)
 			{
-				Screen.Column = col;
-				Screen.Color = 0x0F;
-				Screen.Write(i, 16, 2);
-				Screen.Write(':');
-				Screen.Write(' ');
-				Screen.Write(Get(i), 16, 2);
-				Screen.Write(' ');
-				Screen.Color = 0x07;
-				Screen.Write(Get(i), 10, 3);
-				Screen.NextLine();
+				console.Column = col;
+				console.Color = 0x0F;
+				console.Write(i, 16, 2);
+				console.Write(':');
+				console.Write(' ');
+				console.Write(Get(i), 16, 2);
+				console.Write(' ');
+				console.Color = 0x07;
+				console.Write(Get(i), 10, 3);
+				console.WriteLine();
 			}
 		}
 	}

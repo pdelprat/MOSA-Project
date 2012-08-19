@@ -9,11 +9,8 @@
  */
 
 using System;
-using Mosa.Compiler.Common;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Linker;
-using Mosa.Compiler.Metadata;
 
 namespace Mosa.Platform.AVR32
 {
@@ -67,7 +64,7 @@ namespace Mosa.Platform.AVR32
 		/// Calls the specified target.
 		/// </summary>
 		/// <param name="symbolOperand">The symbol operand.</param>
-		public void Call(SymbolOperand symbolOperand)
+		public void Call(Operand symbolOperand)
 		{
 			linker.Link(
 				LinkType.RelativeOffset | LinkType.NativeI4,

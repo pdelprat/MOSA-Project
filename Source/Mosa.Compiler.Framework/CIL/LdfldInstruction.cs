@@ -9,7 +9,6 @@
 
 using System.Diagnostics;
 
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.TypeSystem.Generic;
 
 namespace Mosa.Compiler.Framework.CIL
@@ -17,7 +16,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class LdfldInstruction : BaseInstruction
+	public sealed class LdfldInstruction : BaseCILInstruction
 	{
 		#region Construction
 
@@ -46,12 +45,11 @@ namespace Mosa.Compiler.Framework.CIL
 
 			var token = decoder.DecodeTokenType();
 			ctx.RuntimeField = decoder.Method.Module.GetField(token);
-			var fieldName = ctx.RuntimeField.Name;
 
 			if (ctx.RuntimeField.ContainsGenericParameter || ctx.RuntimeField.DeclaringType.ContainsOpenGenericParameters)
 			{
 				ctx.RuntimeField = decoder.GenericTypePatcher.PatchField(decoder.TypeModule, decoder.Method.DeclaringType as CilGenericType, ctx.RuntimeField);
-				decoder.Compiler.Scheduler.ScheduleTypeForCompilation(ctx.RuntimeField.DeclaringType);
+				decoder.Compiler.Scheduler.TrackFieldReferenced(ctx.RuntimeField);
 				Debug.Assert(!ctx.RuntimeField.ContainsGenericParameter);
 			}
 

@@ -9,7 +9,6 @@
 
 using System;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -55,7 +54,7 @@ namespace Mosa.Platform.x86.Instructions
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
-			if (context.Operand1 is ConstantOperand)
+			if (context.Operand1.IsConstant)
 			{
 				if (IsByte(context.Operand1))
 					emitter.Emit(CONST8, context.Operand1, null);
@@ -65,10 +64,10 @@ namespace Mosa.Platform.x86.Instructions
 					emitter.Emit(CONST32, context.Operand1, null);
 				return;
 			}
-			if (context.Operand1 is RegisterOperand)
+			if (context.Operand1.IsRegister)
 			{
-				if ((context.Operand1 as RegisterOperand).Register is SegmentRegister)
-					switch (((context.Operand1 as RegisterOperand).Register as SegmentRegister).Segment)
+				if (context.Operand1.Register is SegmentRegister)
+					switch ((context.Operand1.Register as SegmentRegister).Segment)
 					{
 						case SegmentRegister.SegmentType.CS: emitter.Emit(PUSH_CS, null, null); return;
 						case SegmentRegister.SegmentType.SS: emitter.Emit(PUSH_SS, null, null); return;

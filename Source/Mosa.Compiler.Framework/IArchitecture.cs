@@ -7,8 +7,6 @@
  *  Michael Ruck (grover) <sharpos@michaelruck.de>
  */
 
-using System;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 
 namespace Mosa.Compiler.Framework
@@ -61,6 +59,11 @@ namespace Mosa.Compiler.Framework
 		Register StackFrameRegister { get; }
 
 		/// <summary>
+		/// Returns the stack pointer register of the architecture. 
+		/// </summary>
+		Register StackPointerRegister { get; }
+
+		/// <summary>
 		/// Gets the name of the platform.
 		/// </summary>
 		/// <value>
@@ -76,16 +79,14 @@ namespace Mosa.Compiler.Framework
 		/// Retrieves an object, that is able to translate the CIL calling convention into appropriate native code.
 		/// </summary>
 		/// <returns>A calling convention implementation.</returns>
-		ICallingConvention GetCallingConvention();
+		ICallingConvention CallingConvention { get; }
 
 		/// <summary>
-		/// Requests the architecture to add architecture specific compilation stages to the assembly compiler 
+		/// Requests the architecture to add architecture specific compilation stages to the assembly compiler
 		/// pipeline. These may depend upon the current state of the pipeline.
 		/// </summary>
-		/// <param name="assemblyPipeline">
-		/// The pipeline of the assembly compiler to add architecture specific compilation stages to.
-		/// </param>
-		void ExtendAssemblyCompilerPipeline(CompilerPipeline assemblyPipeline);
+		/// <param name="compilerPipeline">The compiler pipeline.</param>
+		void ExtendCompilerPipeline(CompilerPipeline compilerPipeline);
 
 		/// <summary>
 		/// Requests the architecture to add architecture specific compilation stages to the pipeline. These
@@ -97,28 +98,12 @@ namespace Mosa.Compiler.Framework
 		void ExtendMethodCompilerPipeline(CompilerPipeline methodPipeline);
 
 		/// <summary>
-		/// Factory method for result operands of instructions.
-		/// </summary>
-		/// <param name="type">The data type held in the result operand.</param>
-		/// <returns>
-		/// The operand, which holds the instruction result.
-		/// </returns>
-		Operand CreateResultOperand(SigType type);
-
-		/// <summary>
 		/// Gets the type memory requirements.
 		/// </summary>
 		/// <param name="type">The signature type.</param>
 		/// <param name="size">Receives the memory size of the type.</param>
 		/// <param name="alignment">Receives alignment requirements of the type.</param>
 		void GetTypeRequirements(SigType type, out int size, out int alignment);
-
-		/// <summary>
-		/// Gets the intrinsic instruction by type
-		/// </summary>
-		/// <param name="type">The type.</param>
-		/// <returns></returns>
-		IIntrinsicMethod GetIntrinsicMethod(Type type);
 
 		/// <summary>
 		/// Gets the code emitter.

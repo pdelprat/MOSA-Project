@@ -7,7 +7,6 @@
  *  Phil Garcia (tgiphil) <phil@thinkedge.com>
  */
 
-
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
@@ -17,7 +16,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class SizeofInstruction : BaseInstruction
+	public sealed class SizeofInstruction : BaseCILInstruction
 	{
 		#region Construction
 
@@ -49,7 +48,7 @@ namespace Mosa.Compiler.Framework.CIL
 
 			uint size = (uint)decoder.Compiler.TypeLayout.GetTypeSize(type);
 
-			ctx.Result = new Operands.ConstantOperand(BuiltInSigType.UInt32, size);
+			ctx.Result = Operand.CreateConstant(BuiltInSigType.UInt32, size);
 		}
 
 		/// <summary>

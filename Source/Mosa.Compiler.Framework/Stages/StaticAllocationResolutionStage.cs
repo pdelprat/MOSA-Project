@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Mosa.Compiler.Framework.CIL;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
@@ -73,7 +72,7 @@ namespace Mosa.Compiler.Framework.Stages
 			// Change the newobj to a call and increase the operand count to include the this ptr.
 			allocation.OperandCount++;
 			allocation.ResultCount = 0;
-			allocation.ReplaceInstructionOnly(Instruction.Get(OpCode.Call));
+			allocation.ReplaceInstructionOnly(CILInstruction.Get(OpCode.Call));
 		}
 
 		private string GetMethodTableForType(RuntimeType allocatedType)
@@ -89,10 +88,10 @@ namespace Mosa.Compiler.Framework.Stages
 		private Operand InsertLoadBeforeInstruction(Context context, string symbolName, SigType type)
 		{
 			Context before = context.InsertBefore();
-			Operand result = methodCompiler.CreateTemporary(type);
-			Operand op = new SymbolOperand(type, symbolName);
+			Operand result = methodCompiler.CreateVirtualRegister(type);
+			Operand op = Operand.CreateSymbol(type, symbolName);
 
-			before.SetInstruction(Instruction.Get(OpCode.Ldc_i4), result, op);
+			before.SetInstruction(CILInstruction.Get(OpCode.Ldc_i4), result, op);
 
 			return result;
 		}

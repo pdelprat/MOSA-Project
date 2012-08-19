@@ -9,7 +9,6 @@
  *  
  */
 
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 
 namespace Mosa.Compiler.Framework.CIL
@@ -17,7 +16,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public class LoadInstruction : BaseInstruction
+	public class LoadInstruction : BaseCILInstruction
 	{
 		#region Construction
 
@@ -44,18 +43,14 @@ namespace Mosa.Compiler.Framework.CIL
 
 		public static Operand CreateResultOperand(IInstructionDecoder decoder, StackTypeCode operandType, SigType operandSigType)
 		{
-			Operand result;
-
 			if (operandType == StackTypeCode.O || operandType == StackTypeCode.Ptr || operandType == StackTypeCode.F)
 			{
-				result = decoder.Compiler.CreateTemporary(operandSigType);
+				return decoder.Compiler.CreateVirtualRegister(operandSigType);
 			}
 			else
 			{
-				result = decoder.Compiler.CreateTemporary(Operand.SigTypeFromStackType(operandType));
+				return decoder.Compiler.CreateVirtualRegister(Operand.SigTypeFromStackType(operandType));
 			}
-
-			return result;
 		}
 	}
 }

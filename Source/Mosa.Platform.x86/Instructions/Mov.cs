@@ -9,7 +9,6 @@
 
 using System;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -21,7 +20,9 @@ namespace Mosa.Platform.x86.Instructions
 		#region Data Members
 
 		private static readonly OpCode R_C = new OpCode(new byte[] { 0xC7 }, 0); // Move imm32 to r/m32
+		private static readonly OpCode R_C_U8 = new OpCode(new byte[] { 0xC6 }, 0); // Move imm8 to r/m8
 		private static readonly OpCode M_C = R_C;
+		private static readonly OpCode M_C_U8 = R_C_U8;
 		private static readonly OpCode R_R = new OpCode(new byte[] { 0x8B });
 		private static readonly OpCode R_R_16 = new OpCode(new byte[] { 0x66, 0x8B });
 		private static readonly OpCode R_R_U8 = new OpCode(new byte[] { 0x88 });
@@ -56,43 +57,44 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if (destination is RegisterOperand)
-				if ((destination as RegisterOperand).Register is ControlRegister) return CR_R;
-				else if ((destination as RegisterOperand).Register is SegmentRegister)
-					return SR_R;
+			if (destination.IsRegister)
+				if (destination.Register is ControlRegister) return CR_R;
+				else if (destination.Register is SegmentRegister) return SR_R;
 
-			if (source is RegisterOperand)
-				if ((source as RegisterOperand).Register is ControlRegister) return R_CR;
-				else if ((source as RegisterOperand).Register is SegmentRegister)
+			if (source.IsRegister)
+				if (source.Register is ControlRegister) return R_CR;
+				else if (source.Register is SegmentRegister)
 					throw new ArgumentException(@"TODO: No opcode for move from segment register");
 
-			if ((destination is RegisterOperand) && (source is ConstantOperand)) return R_C;
-			if ((destination is MemoryOperand) && (source is ConstantOperand)) return M_C;
-			if ((destination is RegisterOperand) && (source is LabelOperand)) return R_C;
-			if ((destination is MemoryOperand) && (source is LabelOperand)) return M_C;
-			if ((destination is RegisterOperand) && (source is SymbolOperand)) return R_C;
-			if ((destination is MemoryOperand) && (source is SymbolOperand)) return M_C;
+			if ((destination.IsRegister) && (source.IsConstant)) return R_C;
+			if ((destination.IsMemoryAddress) && (source.IsConstant))
+			{
+				if (IsByte(source)) return M_C_U8;
+				return M_C;
+			}
+			if ((destination.IsRegister) && (source.IsSymbol)) return R_C;
+			if ((destination.IsMemoryAddress) && (source.IsSymbol)) return M_C;
 
-			if ((destination is RegisterOperand) && (source is RegisterOperand))
+			if ((destination.IsRegister) && (source.IsRegister))
 			{
 				if (IsByte(source) || IsByte(destination)) return R_R_U8;
 				if (IsChar(source) || IsChar(destination) || IsShort(source) || IsShort(destination)) return R_R_16;
 				return R_R;
 			}
-			if ((destination is RegisterOperand) && (source is MemoryOperand))
+			if ((destination.IsRegister) && (source.IsMemoryAddress))
 			{
 				if (IsByte(destination)) return R_M_U8;
 				if (IsChar(destination) || IsShort(destination)) return R_M_16;
 				return R_M;
 			}
-			if ((destination is MemoryOperand) && (source is RegisterOperand))
+			if ((destination.IsMemoryAddress) && (source.IsRegister))
 			{
 				if (IsByte(destination)) return M_R_U8;
 				if (IsChar(destination) || IsShort(destination)) return M_R_16;
 				return M_R;
 			}
 
-			throw new ArgumentException(@"No opcode for operand type. [" + destination.GetType() + ", " + source.GetType() + ")");
+			throw new ArgumentException(@"No opcode for operand type. [" + destination + ", " + source + ")");
 		}
 
 		/// <summary>

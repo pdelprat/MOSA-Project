@@ -12,7 +12,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Mosa.Compiler.Common;
-using Mosa.Compiler.LinkerFormat.Elf;
 using Mosa.Compiler.LinkerFormat.Elf32;
 
 namespace Mosa.Compiler.Linker.Elf32
@@ -20,7 +19,7 @@ namespace Mosa.Compiler.Linker.Elf32
 	/// <summary>
 	/// 
 	/// </summary>
-	public class Linker : BaseAssemblyLinker
+	public class Linker : BaseLinker
 	{
 
 		/// <summary>

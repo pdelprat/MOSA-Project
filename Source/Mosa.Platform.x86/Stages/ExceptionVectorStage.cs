@@ -7,9 +7,7 @@
  *  Phil Garcia (tgiphil) <phil@thinkedge.com>
  */
 
-using System;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.TypeSystem;
@@ -20,12 +18,12 @@ namespace Mosa.Platform.x86.Stages
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class ExceptionVectorStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage, IPipelineStage
+	public sealed class ExceptionVectorStage : BaseCompilerStage, ICompilerStage, IPipelineStage
 	{
 
-		#region IAssemblyCompilerStage Members
+		#region ICompilerStage Members
 
-		void IAssemblyCompilerStage.Setup(AssemblyCompiler compiler)
+		void ICompilerStage.Setup(BaseCompiler compiler)
 		{
 			base.Setup(compiler);
 		}
@@ -33,12 +31,12 @@ namespace Mosa.Platform.x86.Stages
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		void IAssemblyCompilerStage.Run()
+		void ICompilerStage.Run()
 		{
 			CreateExceptionVector();
 		}
 
-		#endregion // IAssemblyCompilerStage Members
+		#endregion // ICompilerStage Members
 
 		#region Internal
 
@@ -58,9 +56,9 @@ namespace Mosa.Platform.x86.Stages
 			if (runtimeMethod == null)
 				return;
 
-			SymbolOperand exceptionMethod = SymbolOperand.FromMethod(runtimeMethod);
+			Operand exceptionMethod = Operand.CreateSymbolFromMethod(runtimeMethod);
 
-			RegisterOperand esp = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.ESP);
+			Operand esp = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.ESP);
 
 			InstructionSet instructionSet = new InstructionSet(100);
 			Context ctx = new Context(instructionSet);

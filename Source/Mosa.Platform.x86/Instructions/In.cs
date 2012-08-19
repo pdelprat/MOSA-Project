@@ -8,9 +8,7 @@
  */
 
 using System;
-
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -48,13 +46,13 @@ namespace Mosa.Platform.x86.Instructions
 			// FIXME: This method is not called. 
 			if (IsByte(source))
 			{
-				if ((destination is RegisterOperand) && (source is ConstantOperand)) return R_C_8;
-				if ((destination is RegisterOperand) && (source is RegisterOperand)) return R_R_8;
+				if ((destination.IsRegister) && (source.IsConstant)) return R_C_8;
+				if ((destination.IsRegister) && (source.IsRegister)) return R_R_8;
 			}
 			else
 			{
-				if ((destination is RegisterOperand) && (source is ConstantOperand)) return R_C_32;
-				if ((destination is RegisterOperand) && (source is RegisterOperand)) return R_R_32;
+				if ((destination.IsRegister) && (source.IsConstant)) return R_C_32;
+				if ((destination.IsRegister) && (source.IsRegister)) return R_R_32;
 			}
 
 			throw new ArgumentException(@"No opcode for operand type.");

@@ -112,21 +112,23 @@ namespace Mosa.Compiler.Framework.CIL
 							break;
 					}
 					var valueTypeSignature = new ValueTypeSigType(builtInType.Token);
-					ctx.Result = decoder.Compiler.CreateTemporary(valueTypeSignature);
-					ctx.Other = builtInType;
+					ctx.Result = decoder.Compiler.CreateVirtualRegister(valueTypeSignature);
+					ctx.RuntimeType = builtInType;
 					return;
 				}
 
-				ctx.Result = decoder.Compiler.CreateTemporary(signatureType);
+				ctx.Result = decoder.Compiler.CreateVirtualRegister(signatureType);
 			}
 			else if (type.ContainsOpenGenericParameters)
 			{
 				var signatureType = decoder.GenericTypePatcher.PatchSignatureType(decoder.TypeModule, decoder.Method.DeclaringType, token);
-				ctx.Result = decoder.Compiler.CreateTemporary(signatureType);
+				ctx.Result = decoder.Compiler.CreateVirtualRegister(signatureType);
 			}
 			else
-				ctx.Result = decoder.Compiler.CreateTemporary(decoder.GenericTypePatcher.PatchSignatureType(decoder.TypeModule, decoder.Method.DeclaringType, token));
-			ctx.Other = decoder.TypeModule.GetType(token);
+			{
+				ctx.Result = decoder.Compiler.CreateVirtualRegister(decoder.GenericTypePatcher.PatchSignatureType(decoder.TypeModule, decoder.Method.DeclaringType, token));
+			}
+			ctx.RuntimeType = decoder.TypeModule.GetType(token);
 		}
 
 		/// <summary>

@@ -1,12 +1,5 @@
-﻿/*
- * (c) 2011 MOSA - The Managed Operating System Alliance
- *
- * Licensed under the terms of the New BSD License.
- *
- * Authors:
- *  Phil Garcia (tgiphil) <phil@thinkedge.com> 
- *
- */
+﻿// Remove conditional statement after Mono 2.11 is released
+#if !__MonoCS__
 
 
 namespace Mosa.Test.Collection
@@ -192,3 +185,5 @@ namespace Mosa.Test.Collection
 		}
 		}
 }
+
+#endif

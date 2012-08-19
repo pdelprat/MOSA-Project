@@ -20,10 +20,10 @@ namespace Mosa.Compiler.InternalTrace
 	/// </summary>
 	public static class InstructionLogger
 	{
-		public static void Run(IMethodCompiler methodCompiler, IPipelineStage stage)
+		public static void Run(BaseMethodCompiler methodCompiler, IPipelineStage stage)
 		{
 			Run(
-				methodCompiler.InternalLog,
+				methodCompiler.InternalTrace,
 				stage,
 				methodCompiler.Method,
 				methodCompiler.InstructionSet,
@@ -31,21 +31,18 @@ namespace Mosa.Compiler.InternalTrace
 			);
 		}
 
-		public static void Run(IInternalTrace internalLog, IPipelineStage stage, RuntimeMethod method, InstructionSet instructionSet, IList<BasicBlock> basicBlocks)
+		public static void Run(IInternalTrace internalLog, IPipelineStage stage, RuntimeMethod method, InstructionSet instructionSet, BasicBlocks basicBlocks)
 		{
 			if (internalLog == null)
 				return;
 
-			if (internalLog.InstructionTraceListener == null)
+			if (internalLog.TraceListener == null)
 				return;
 
-			if (!internalLog.InstructionTraceFilter.IsMatch(method, stage.Name))
+			if (!internalLog.TraceFilter.IsMatch(method, stage.Name))
 				return;
 
 			StringBuilder text = new StringBuilder();
-
-			// Line number
-			int index = 1;
 
 			text.AppendLine(String.Format("IR representation of method {0} after stage {1}:", method, stage.Name));
 			text.AppendLine();
@@ -54,7 +51,9 @@ namespace Mosa.Compiler.InternalTrace
 			{
 				foreach (BasicBlock block in basicBlocks)
 				{
-					text.AppendFormat("Block #{0} - Label L_{1:X4}", index, block.Label);
+					text.AppendFormat("Block #{0} - Label L_{1:X4}", block.Sequence, block.Label);
+					if (basicBlocks.IsHeaderBlock(block))
+						text.Append(" [Header]");
 					text.AppendLine();
 
 					text.AppendFormat("  Prev: ");
@@ -66,7 +65,6 @@ namespace Mosa.Compiler.InternalTrace
 					text.AppendLine(ListBlocks(block.NextBlocks));
 
 					text.AppendLine();
-					index++;
 				}
 			}
 			else
@@ -74,7 +72,7 @@ namespace Mosa.Compiler.InternalTrace
 				LogInstructions(text, new Context(instructionSet, 0));
 			}
 
-			internalLog.InstructionTraceListener.NotifyNewInstructionTrace(method, stage.Name, text.ToString());
+			internalLog.TraceListener.SubmitInstructionTraceInformation(method, stage.Name, text.ToString());
 		}
 
 		private static string ListBlocks(IList<BasicBlock> blocks)
@@ -100,12 +98,9 @@ namespace Mosa.Compiler.InternalTrace
 		{
 			for (; !ctx.EndOfInstruction; ctx.GotoNext())
 			{
-				if (ctx.Instruction == null)
+				if (ctx.IsEmpty)
 					continue;
-
-				if (ctx.Ignore)
-					text.Append("; ");
-
+				
 				if (ctx.Marked)
 					text.AppendFormat("L_{0:X4}* {1}", ctx.Label, ctx.Instruction.ToString(ctx));
 				else

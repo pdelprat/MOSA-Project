@@ -7,14 +7,15 @@
  *  Simon Wollwage (rootnode) <rootnode@mosa-project.org>
  */
 
+using System;
 using System.Collections.Generic;
-using Mosa.Compiler.Framework.Operands;
-using Mosa.Compiler.Framework.Stages;
+using Mosa.Compiler.Common;
+using Mosa.Compiler.Framework.IR;
 
 namespace Mosa.Compiler.Framework.Stages
 {
 	/// <summary>
-	///		Places phi instructions for the SSA transformation
+	///	Places phi instructions for the SSA transformation
 	/// </summary>
 	public class PhiPlacementStage : BaseMethodCompilerStage, IMethodCompilerStage, IPipelineStage
 	{
@@ -31,35 +32,11 @@ namespace Mosa.Compiler.Framework.Stages
 		/// <summary>
 		/// 
 		/// </summary>
-		public class AssignmentInformation
-		{
-			/// <summary>
-			/// 
-			/// </summary>
-			public List<BasicBlock> AssigningBlocks = new List<BasicBlock>();
-			/// <summary>
-			/// 
-			/// </summary>
-			public Operand Operand;
-
-			/// <summary>
-			/// Initializes a new instance of the <see cref="AssignmentInformation"/> class.
-			/// </summary>
-			/// <param name="operand">The operand.</param>
-			public AssignmentInformation(Operand operand)
-			{
-				this.Operand = operand;
-			}
-		}
-
-		/// <summary>
-		/// 
-		/// </summary>
 		private PhiPlacementStrategy strategy;
 		/// <summary>
 		/// 
 		/// </summary>
-		private Dictionary<string, AssignmentInformation> assignments = new Dictionary<string, AssignmentInformation>();
+		private Dictionary<Operand, List<BasicBlock>> assignments = new Dictionary<Operand, List<BasicBlock>>();
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PhiPlacementStage"/> class.
@@ -73,16 +50,17 @@ namespace Mosa.Compiler.Framework.Stages
 		/// <summary>
 		/// Initializes a new instance of the <see cref="PhiPlacementStage"/> class.
 		/// </summary>
-		public PhiPlacementStage() : this(PhiPlacementStrategy.Minimal)
+		public PhiPlacementStage()
+			: this(PhiPlacementStrategy.Minimal)
 		{
 		}
 
 		/// <summary>
 		/// Gets the assignments.
 		/// </summary>
-		public Dictionary<string, AssignmentInformation> Assignments
+		public Dictionary<Operand, List<BasicBlock>> Assignments
 		{
-			get { return this.assignments; }
+			get { return assignments; }
 		}
 
 		/// <summary>
@@ -90,21 +68,17 @@ namespace Mosa.Compiler.Framework.Stages
 		/// </summary>
 		void IMethodCompilerStage.Run()
 		{
-			if (AreExceptions)
+			// Method is empty - must be a plugged method
+			if (basicBlocks.HeadBlocks.Count == 0)
 				return;
 
-			this.CollectAssignments();
-			switch (this.strategy)
+			CollectAssignments();
+
+			switch (strategy)
 			{
-				case PhiPlacementStrategy.Minimal:
-					this.PlacePhiFunctionsMinimal();
-					return;
-				case PhiPlacementStrategy.SemiPruned:
-					this.PlacePhiFunctionsSemiPruned();
-					return;
-				case PhiPlacementStrategy.Pruned:
-					this.PlacePhiFunctionsPruned();
-					return;
+				case PhiPlacementStrategy.Minimal: PlacePhiFunctionsMinimal(); return;
+				case PhiPlacementStrategy.SemiPruned: PlacePhiFunctionsSemiPruned(); return;
+				case PhiPlacementStrategy.Pruned: PlacePhiFunctionsPruned(); return;
 			}
 		}
 
@@ -117,18 +91,7 @@ namespace Mosa.Compiler.Framework.Stages
 		/// </returns>
 		public static bool IsAssignmentToStackVariable(Context instruction)
 		{
-			return instruction.Result != null && instruction.Result is StackOperand;
-		}
-
-		/// <summary>
-		/// Names for operand.
-		/// </summary>
-		/// <param name="operand">The operand.</param>
-		/// <returns></returns>
-		public static string NameForOperand(Operand operand)
-		{
-			var sop = operand as StackOperand;
-			return sop.Name;
+			return instruction.Result != null && instruction.Result.IsStackLocal;
 		}
 
 		/// <summary>
@@ -138,15 +101,14 @@ namespace Mosa.Compiler.Framework.Stages
 		{
 			foreach (var block in basicBlocks)
 				for (var context = new Context(instructionSet, block); !context.EndOfInstruction; context.GotoNext())
-					if (IsAssignmentToStackVariable(context))
-						this.AddToAssignments(context.Result, block);
+					if (!context.IsEmpty && context.Result != null)
+						if (context.Result.IsStackLocal)
+							AddToAssignments(context.Result, block);
 
-			var numberOfParameters = methodCompiler.Method.Parameters.Count;
-			if (methodCompiler.Method.Signature.HasThis)
-				++numberOfParameters;
-
-			for (var i = 0; i < numberOfParameters; ++i)
-				AddToAssignments(methodCompiler.GetParameterOperand(i), this.FindBlock(-1));
+			// FUTURE: Only include parameter operands if reachable from the given header block
+			foreach (var headBlock in basicBlocks.HeadBlocks)
+				foreach (var op in methodCompiler.Parameters)
+					AddToAssignments(op, headBlock);
 		}
 
 		/// <summary>
@@ -156,13 +118,15 @@ namespace Mosa.Compiler.Framework.Stages
 		/// <param name="block">The block.</param>
 		private void AddToAssignments(Operand operand, BasicBlock block)
 		{
-			var name = NameForOperand(operand);
+			List<BasicBlock> blocks;
 
-			if (!assignments.ContainsKey(name))
-				assignments[name] = new AssignmentInformation(operand);
+			if (!assignments.TryGetValue(operand, out blocks))
+			{
+				blocks = new List<BasicBlock>();
+				assignments.Add(operand, blocks);
+			}
 
-			if (!assignments[name].AssigningBlocks.Contains(block))
-				assignments[name].AssigningBlocks.Add(block);
+			blocks.AddIfNew(block);
 		}
 
 		/// <summary>
@@ -172,32 +136,47 @@ namespace Mosa.Compiler.Framework.Stages
 		/// <param name="variable">The variable.</param>
 		private void InsertPhiInstruction(BasicBlock block, Operand variable)
 		{
-			var context = new Context(this.instructionSet, block).InsertBefore();
-			context.SetInstruction(IR.Instruction.PhiInstruction);
-			context.SetResult(variable);
+			var context = new Context(instructionSet, block).InsertBefore();
+			context.SetInstruction(IRInstruction.Phi, variable);
+
 			for (var i = 0; i < block.PreviousBlocks.Count; ++i)
 				context.SetOperand(i, variable);
+
 			context.OperandCount = (byte)block.PreviousBlocks.Count;
 		}
+
 
 		/// <summary>
 		/// Places the phi functions minimal.
 		/// </summary>
 		private void PlacePhiFunctionsMinimal()
 		{
-			var firstBlock = this.FindBlock(-1);
-			var dominanceCalculationStage = this.methodCompiler.Pipeline.FindFirst<DominanceCalculationStage>() as IDominanceProvider;
+			foreach (var headBlock in basicBlocks.HeadBlocks)
+				PlacePhiFunctionsMinimal(headBlock);
+		}
 
-			foreach (var t in assignments.Keys)
+		/// <summary>
+		/// Places the phi functions minimal.
+		/// </summary>
+		private void PlacePhiFunctionsMinimal(BasicBlock headBlock)
+		{
+			var dominanceCalculation = methodCompiler.Pipeline.FindFirst<DominanceCalculationStage>().GetDominanceProvider(headBlock);
+
+			foreach (var t in assignments)
 			{
-				if (assignments[t].AssigningBlocks.Count < 2)
+				var blocks = t.Value;
+
+				if (blocks.Count < 2)
 					continue;
-				var S = new List<BasicBlock>(assignments[t].AssigningBlocks);
-				S.Add(firstBlock);
-				var idf = dominanceCalculationStage.IteratedDominanceFrontier(S);
+
+				blocks.AddIfNew(headBlock);
+
+				var idf = dominanceCalculation.IteratedDominanceFrontier(blocks);
 
 				foreach (var n in idf)
-					this.InsertPhiInstruction(n, assignments[t].Operand);
+				{
+					InsertPhiInstruction(n, t.Key);
+				}
 			}
 		}
 
@@ -205,12 +184,16 @@ namespace Mosa.Compiler.Framework.Stages
 		/// Places the phi functions semi pruned.
 		/// </summary>
 		private void PlacePhiFunctionsSemiPruned()
-		{ }
+		{
+			throw new NotImplementedException("PhiPlacementStage.PlacePhiFunctionsSemiPruned");
+		}
 
 		/// <summary>
 		/// Places the phi functions pruned.
 		/// </summary>
 		private void PlacePhiFunctionsPruned()
-		{ }
+		{
+			throw new NotImplementedException("PhiPlacementStage.PlacePhiFunctionsSemiPruned");
+		}
 	}
 }

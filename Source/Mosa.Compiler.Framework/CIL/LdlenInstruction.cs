@@ -38,7 +38,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
@@ -46,7 +46,7 @@ namespace Mosa.Compiler.Framework.CIL
 			if (arrayType == null)
 				throw new InvalidProgramException(@"Operand to ldlen is not a vector.");
 
-			ctx.Result = compiler.CreateTemporary(BuiltInSigType.IntPtr);
+			ctx.Result = compiler.CreateVirtualRegister(BuiltInSigType.IntPtr);
 		}
 
 		/// <summary>

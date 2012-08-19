@@ -1,23 +1,25 @@
-<?xml version="1.0"?>
-<project name="Mosa" default="build" basedir=".">
-	
-	<!-- Comma-separated list of warnings that should be surpressed in all modules. Warning: no spaces allowed! -->
-	<property name="suppresswarnings" value="0414,0219,0169,0162,0168"/>
-	
-	<!-- Toggle debug output by setting this to true (nant -D:debug=true) -->
-	<property name="debug" value="none" overwrite="false"/>
-	
-	<!-- Speaks for itself, I should hope -->
-	<property name="outputDirectory" value="../bin" overwrite="false"/>
-	
-	<!-- Main build target -->
-	<target name="build">
-	    <csc target="library" output="${outputDirectory}/Mosa.Kernel.x86.dll" debug="${debug}" unsafe="true" nostdlib="false">
-		<sources>
-                    <include name="Mosa.Internal/ExceptionEngine.cs"/>
+<?xml version="1.0"?>
+<project name="Mosa" default="build" basedir=".">
+	
+	<!-- Comma-separated list of warnings that should be surpressed in all modules. Warning: no spaces allowed! -->
+	<property name="suppresswarnings" value="0414,0219,0169,0162,0168"/>
+	
+	<!-- Toggle debug output by setting this to true (nant -D:debug=true) -->
+	<property name="debug" value="none" overwrite="false"/>
+	
+	<!-- Speaks for itself, I should hope -->
+	<property name="outputDirectory" value="../bin" overwrite="false"/>
+	
+	<!-- Main build target -->
+	<target name="build">
+	    <csc target="library" output="${outputDirectory}/Mosa.Kernel.x86.dll" debug="${debug}" unsafe="true" nostdlib="false">
+		<sources>
+                    <include name="ConsoleManager.cs"/>
+                    <include name="ConsoleSession.cs"/>
+                    <include name="DebugClient.cs"/>
+                    <include name="Serial.cs"/>
+                    <include name="Debug.cs"/>
                     <include name="KernelMemory.cs"/>
-                    <include name="Mosa.Internal/RegisterContext.cs"/>
-                    <include name="Mosa.Internal/Runtime.cs"/>
                     <include name="CMOS.cs"/>
                     <include name="Colors.cs"/>
                     <include name="CpuInfo.cs"/>
@@ -41,13 +43,14 @@
                     <include name="Smbios/SmbiosStructure.cs"/>
                     <include name="TaskManager.cs"/>
                     <include name="VirtualPageAllocator.cs"/>
-		</sources>
-		<references>
+		</sources>
+		<references>
                     <include name="${outputDirectory}/mscorlib.dll"/>
+                    <include name="${outputDirectory}/Mosa.Internal.Plug.dll"/>
                     <include name="${outputDirectory}/Mosa.Platform.x86.Intrinsic.dll"/>
-		</references>
-		<!-- supress warnings -->
-		<nowarn><warning number="${suppresswarnings}"/></nowarn>
-        </csc>
-	</target>
-</project>
+		</references>
+		<!-- supress warnings -->
+		<nowarn><warning number="${suppresswarnings}"/></nowarn>
+        </csc>
+	</target>
+</project>

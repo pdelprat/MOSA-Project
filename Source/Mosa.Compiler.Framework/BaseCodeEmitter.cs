@@ -16,7 +16,6 @@ using System.Diagnostics;
 using System.IO;
 
 using Mosa.Compiler.Linker;
-using Mosa.Compiler.Common;
 
 namespace Mosa.Compiler.Framework
 {
@@ -69,11 +68,11 @@ namespace Mosa.Compiler.Framework
 		#endregion // Types
 
 		#region Data members
-		
+
 		/// <summary>
 		/// The compiler that is generating the code.
 		/// </summary>
-		protected IMethodCompiler compiler;
+		protected BaseMethodCompiler compiler;
 
 		/// <summary>
 		/// The stream used to write machine code bytes to.
@@ -93,7 +92,7 @@ namespace Mosa.Compiler.Framework
 		/// <summary>
 		/// Holds the linker used to resolve externals.
 		/// </summary>
-		protected IAssemblyLinker linker;
+		protected ILinker linker;
 
 		/// <summary>
 		/// List of literal patches we need to perform.
@@ -128,8 +127,7 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <param name="compiler">The compiler.</param>
 		/// <param name="codeStream">The stream the machine code is written to.</param>
-		/// <param name="linker">The linker used to resolve external addresses.</param>
-		void ICodeEmitter.Initialize(IMethodCompiler compiler, Stream codeStream, IAssemblyLinker linker)
+		void ICodeEmitter.Initialize(BaseMethodCompiler compiler, Stream codeStream)
 		{
 			Debug.Assert(null != compiler, @"MachineCodeEmitter needs a method compiler.");
 			if (compiler == null)
@@ -137,14 +135,11 @@ namespace Mosa.Compiler.Framework
 			Debug.Assert(null != codeStream, @"MachineCodeEmitter needs a code stream.");
 			if (codeStream == null)
 				throw new ArgumentNullException(@"codeStream");
-			Debug.Assert(null != linker, @"MachineCodeEmitter needs a linker.");
-			if (linker == null)
-				throw new ArgumentNullException(@"linker");
 
 			this.compiler = compiler;
 			this.codeStream = codeStream;
 			this.codeStreamBasePosition = codeStream.Position;
-			this.linker = linker;
+			this.linker = compiler.Linker;
 		}
 
 		void ICodeEmitter.ResolvePatches()
@@ -175,7 +170,7 @@ namespace Mosa.Compiler.Framework
 			// Reset the position
 			codeStream.Position = currentPosition;
 		}
-	
+
 		/// <summary>
 		/// Emits a label into the code stream.
 		/// </summary>

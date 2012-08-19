@@ -28,7 +28,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// Base class for instructions, which invoke other functions.
 	/// </summary>
-	public abstract class InvokeInstruction : BaseInstruction
+	public abstract class InvokeInstruction : BaseCILInstruction
 	{
 
 		#region Types
@@ -87,18 +87,12 @@ namespace Mosa.Compiler.Framework.CIL
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.Call; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.Call; } }
 
 		/// <summary>
 		/// Gets the supported immediate metadata tokens in the instruction.
 		/// </summary>
-		protected abstract InvokeSupportFlags InvokeSupport
-		{
-			get;
-		}
+		protected abstract InvokeSupportFlags InvokeSupport { get; }
 
 		#endregion // Properties
 
@@ -119,7 +113,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public override void Validate(Context ctx, IMethodCompiler compiler)
+		public override void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			base.Validate(ctx, compiler);
 
@@ -168,17 +162,18 @@ namespace Mosa.Compiler.Framework.CIL
 			{
 				case TableType.MethodDef:
 					method = module.GetMethod(callTarget);
+					decoder.Compiler.Scheduler.TrackMethodInvoked(method);
 					break;
 
 				case TableType.MemberRef:
 					method = module.GetMethod(callTarget, decoder.Method.DeclaringType);
 					if (method.DeclaringType.IsGeneric)
-						decoder.Compiler.Scheduler.ScheduleTypeForCompilation(method.DeclaringType);
+					decoder.Compiler.Scheduler.TrackMethodInvoked(method);
 					break;
 
 				case TableType.MethodSpec:
 					method = module.GetMethod(callTarget);
-					decoder.Compiler.Scheduler.ScheduleTypeForCompilation(method.DeclaringType);
+					decoder.Compiler.Scheduler.TrackMethodInvoked(method);
 					break;
 
 				default:
@@ -189,7 +184,7 @@ namespace Mosa.Compiler.Framework.CIL
 			if (method.DeclaringType.ContainsOpenGenericParameters)
 			{
 				method = decoder.GenericTypePatcher.PatchMethod(method.DeclaringType.Module, decoder.Method.DeclaringType as CilGenericType, method);
-				decoder.Compiler.Scheduler.ScheduleTypeForCompilation(method.DeclaringType);
+				decoder.Compiler.Scheduler.TrackMethodInvoked(method);
 			}
 
 			SetInvokeTarget(ctx, decoder.Compiler, method);
@@ -203,7 +198,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
 		/// <param name="method">The method.</param>
-		private static void SetInvokeTarget(Context ctx, IMethodCompiler compiler, RuntimeMethod method)
+		private static void SetInvokeTarget(Context ctx, BaseMethodCompiler compiler, RuntimeMethod method)
 		{
 			if (method == null)
 				throw new ArgumentNullException(@"method");
@@ -225,7 +220,7 @@ namespace Mosa.Compiler.Framework.CIL
 			if (signature.ReturnType.Type != CilElementType.Void)
 			{
 				ctx.ResultCount = 1;
-				ctx.Result = compiler.CreateTemporary(signature.ReturnType);
+				ctx.Result = compiler.CreateVirtualRegister(signature.ReturnType);
 			}
 			else
 				ctx.ResultCount = 0;

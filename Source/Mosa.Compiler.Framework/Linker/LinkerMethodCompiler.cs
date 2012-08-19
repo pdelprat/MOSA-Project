@@ -8,7 +8,6 @@
  */
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Platform;
 using Mosa.Compiler.Framework.Stages;
 using Mosa.Compiler.TypeSystem;
 
@@ -21,22 +20,23 @@ namespace Mosa.Compiler.Linker
 		/// <summary>
 		/// Initializes a new instance of the <see cref="LinkerMethodCompiler"/> class.
 		/// </summary>
-		/// <param name="assemblyCompiler">The assembly compiler executing this method compiler.</param>
+		/// <param name="compiler">The assembly compiler executing this method compiler.</param>
 		/// <param name="method">The metadata of the method to compile.</param>
 		/// <param name="instructionSet">The instruction set.</param>
-		/// <exception cref="System.ArgumentNullException"><paramref name="assemblyCompiler"/>, <paramref name="method"/> or <paramref name="instructionSet"/> is null.</exception>
-		public LinkerMethodCompiler(AssemblyCompiler assemblyCompiler, ICompilationSchedulerStage compilationScheduler, RuntimeMethod method, InstructionSet instructionSet)
-			: base(assemblyCompiler, method.DeclaringType, method,  instructionSet, compilationScheduler)
+		public LinkerMethodCompiler(BaseCompiler compiler, RuntimeMethod method, InstructionSet instructionSet)
+			: base(compiler, method, instructionSet)
 		{
-			this.CreateBlock(-1, 0);
+			BasicBlocks.CreateBlock(BasicBlock.PrologueLabel, 0);
+			BasicBlocks.AddHeaderBlock(BasicBlocks.PrologueBlock);
 
 			this.Pipeline.AddRange(new IMethodCompilerStage[] {
-				new SimpleTraceBlockOrderStage(),
+				new LoopAwareBlockOrderStage(),
 				new PlatformStubStage(),
 				new CodeGenerationStage(),
 			});
 
-			assemblyCompiler.Architecture.ExtendMethodCompilerPipeline(this.Pipeline);
+
+			compiler.Architecture.ExtendMethodCompilerPipeline(this.Pipeline);
 		}
 
 		#endregion // Construction

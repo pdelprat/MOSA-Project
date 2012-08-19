@@ -1,5 +1,6 @@
 ﻿
-using Mosa.Test.Cases.IL;
+using Mosa.Test.Cases.CIL;
+using Mosa.Test.Compiler.Framework;
 
 namespace Mosa.Test.Debug
 {
@@ -7,6 +8,11 @@ namespace Mosa.Test.Debug
 	{
 		public static void Main()
 		{
+			LoopAwareBlockOrderTests.LoopAwareBlockOrder1();
+
+			//SimpleFastDominanceTests.DominanceCalculation1();
+			//SimpleFastDominanceTests.DominanceCalculation2();
+
 			//ConditionalOperator s = new ConditionalOperator();
 			//s.CompareEqualI1((sbyte)0x02, (sbyte)0x02, (sbyte)0x05, (sbyte)0x01);
 			//s.CompareEqualI1((sbyte)0x60, (sbyte)0x00, (sbyte)0x60, (sbyte)0x06);
@@ -18,7 +24,10 @@ namespace Mosa.Test.Debug
 			//add.AddConstantCLeft('a', 'Z');
 			//add.AddConstantCLeft('a', 'Z');
 
-			Call call = new Call();
+			Int32Fixture int32Fixture = new Int32Fixture();
+			int32Fixture.AddI4I4(0, 0);
+
+			CallFixture call = new CallFixture();
 			call.CallU1((byte)1);
 
 			//Int32Fixture int32Fixture = new Int32Fixture();
@@ -42,6 +51,9 @@ namespace Mosa.Test.Debug
 			//    callVirtualFixture.TestBaseCall();
 			//    callVirtualFixture.TestVirtualCall();
 			//}
+			
+			ComparisonFixture Comparison = new ComparisonFixture();
+			Comparison.CompareEqualI2I8(-1, -1);
 
 			return;
 		}

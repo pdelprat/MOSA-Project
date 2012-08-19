@@ -8,7 +8,6 @@
  */
 
 using System;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 
 namespace Mosa.Compiler.Framework
@@ -19,6 +18,12 @@ namespace Mosa.Compiler.Framework
 	/// </summary>
 	public abstract class BasicArchitecture : IArchitecture
 	{
+
+		/// <summary>
+		/// Holds the calling conversion
+		/// </summary>
+		public ICallingConvention CallingConvention { get; protected set; }
+
 		/// <summary>
 		/// Gets a value indicating whether this architecture is little-endian.
 		/// </summary>
@@ -54,6 +59,11 @@ namespace Mosa.Compiler.Framework
 		/// Gets the stack frame register of the architecture.
 		/// </summary>
 		public abstract Register StackFrameRegister { get; }
+
+		/// <summary>
+		/// Returns the stack pointer register of the architecture.
+		/// </summary>
+		public abstract Register StackPointerRegister { get; }
 
 		/// <summary>
 		/// Gets the name of the platform.
@@ -92,10 +102,10 @@ namespace Mosa.Compiler.Framework
 		}
 
 		/// <summary>
-		/// Extends the assembly compiler pipeline with architecture specific assembly compiler stages.
+		/// Extends the compiler pipeline with architecture specific assembly compiler stages.
 		/// </summary>
-		/// <param name="assemblyPipeline">The pipeline to extend.</param>
-		public abstract void ExtendAssemblyCompilerPipeline(CompilerPipeline assemblyPipeline);
+		/// <param name="compilerPipeline">The pipeline to extend.</param>
+		public abstract void ExtendCompilerPipeline(CompilerPipeline compilerPipeline);
 
 		/// <summary>
 		/// Requests the architecture to add architecture specific compilation stages to the pipeline. These
@@ -105,34 +115,12 @@ namespace Mosa.Compiler.Framework
 		public abstract void ExtendMethodCompilerPipeline(CompilerPipeline methodPipeline);
 
 		/// <summary>
-		/// Retrieves an object, that is able to translate the CIL calling convention into appropriate native code.
-		/// </summary>
-		/// <returns>A calling convention implementation.</returns>
-		public abstract ICallingConvention GetCallingConvention();
-
-		/// <summary>
 		/// Gets the type memory requirements.
 		/// </summary>
 		/// <param name="type">The signature type.</param>
 		/// <param name="size">Receives the memory size of the type.</param>
 		/// <param name="alignment">Receives alignment requirements of the type.</param>
 		public abstract void GetTypeRequirements(SigType type, out int size, out int alignment);
-
-		/// <summary>
-		/// Factory method for result operands of instructions.
-		/// </summary>
-		/// <param name="type">The data type held in the result operand.</param>
-		/// <returns>
-		/// The operand, which holds the instruction result.
-		/// </returns>
-		public abstract Operand CreateResultOperand(SigType type);
-
-		/// <summary>
-		/// Gets the intrinsic instruction by type
-		/// </summary>
-		/// <param name="type">The type.</param>
-		/// <returns></returns>
-		public abstract IIntrinsicMethod GetIntrinsicMethod(Type type);
 
 		/// <summary>
 		/// Gets the code emitter.

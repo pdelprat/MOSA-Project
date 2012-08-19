@@ -10,7 +10,6 @@
 using System;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 
@@ -39,11 +38,6 @@ namespace Mosa.Platform.x64
 		/// The type of the elf machine.
 		/// </value>
 		public override ushort ElfMachineType { get { return 3; } }
-
-		/// <summary>
-		/// Holds the calling conversion
-		/// </summary>
-		private ICallingConvention callingConvention;
 
 		/// <summary>
 		/// Defines the register set of the target architecture.
@@ -89,12 +83,15 @@ namespace Mosa.Platform.x64
 		/// </summary>
 		public override Register StackFrameRegister
 		{
-			get
-			{
-				// TODO
-				return null;
-				// return GeneralPurposeRegister.EBP; 
-			}
+			get { return null; /* GeneralPurposeRegister.EBP;*/ }
+		}
+
+		/// <summary>
+		/// Retrieves the stack pointer register of the x64.
+		/// </summary>
+		public override Register StackPointerRegister
+		{
+			get { return null; /* GeneralPurposeRegister.ESP;*/ }
 		}
 
 		/// <summary>
@@ -123,26 +120,12 @@ namespace Mosa.Platform.x64
 		}
 
 		/// <summary>
-		/// Creates a new result operand of the requested type.
-		/// </summary>
-		/// <param name="signatureType">The type requested.</param>
-		/// <param name="instructionLabel">The label of the instruction requesting the operand.</param>
-		/// <param name="operandStackIndex">The stack index of the operand.</param>
-		/// <returns>A new operand usable as a result operand.</returns>
-		public override Operand CreateResultOperand(SigType signatureType)
-		{
-			// TODO
-			return null;
-			//return new RegisterOperand(signatureType, GeneralPurposeRegister.EAX);
-		}
-
-		/// <summary>
 		/// Extends the assembly compiler pipeline with x64 specific stages.
 		/// </summary>
-		/// <param name="assemblyCompilerPipeline">The assembly compiler pipeline to extend.</param>
-		public override void ExtendAssemblyCompilerPipeline(CompilerPipeline assemblyCompilerPipeline)
+		/// <param name="compilerPipeline">The pipeline to extend.</param>
+		public override void ExtendCompilerPipeline(CompilerPipeline compilerPipeline)
 		{
-			//assemblyCompilerPipeline.InsertAfterFirst<IAssemblyCompilerStage>(
+			//assemblyCompilerPipeline.InsertAfterFirst<ICompilerStage>(
 			//    new InterruptVectorStage()
 			//);
 
@@ -183,21 +166,6 @@ namespace Mosa.Platform.x64
 		}
 
 		/// <summary>
-		/// Retrieves a calling convention object for the requested calling convention.
-		/// </summary>
-		/// <returns>
-		/// An instance of <see cref="ICallingConvention"/>.
-		/// </returns>
-		public override ICallingConvention GetCallingConvention()
-		{
-			// TODO
-			if (callingConvention == null)
-				callingConvention = null; // new DefaultCallingConvention(this);
-
-			return callingConvention;
-		}
-
-		/// <summary>
 		/// Gets the type memory requirements.
 		/// </summary>
 		/// <param name="signatureType">The signature type.</param>
@@ -233,18 +201,6 @@ namespace Mosa.Platform.x64
 
 				default: memorySize = alignment = 4; break;
 			}
-		}
-
-		/// <summary>
-		/// Gets the intrinsic instruction by type
-		/// </summary>
-		/// <param name="type">The type.</param>
-		/// <returns></returns>
-		public override IIntrinsicMethod GetIntrinsicMethod(Type type)
-		{
-			// TODO
-			return null;
-			//return Intrinsic.Method.Get(type);
 		}
 
 		/// <summary>

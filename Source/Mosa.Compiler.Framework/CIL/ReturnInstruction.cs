@@ -43,10 +43,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.Return; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.Return; } }
 
 		#endregion // Properties
 
@@ -70,7 +67,7 @@ namespace Mosa.Compiler.Framework.CIL
 			else
 				ctx.OperandCount = 1;
 
-			ctx.SetBranch(Int32.MaxValue);
+			ctx.SetBranch(BasicBlock.EpilogueLabel);
 		}
 
 		/// <summary>

@@ -15,19 +15,19 @@ namespace Mosa.Compiler.Framework
 	/// <summary>
 	/// 
 	/// </summary>
-	public abstract class BaseInstruction : IInstruction
+	public abstract class BaseInstruction
 	{
 		#region Data members
 
 		/// <summary>
 		/// Holds the default number of operands for this instruction.
 		/// </summary>
-		protected byte _operandDefaultCount;
+		protected byte operandDefaultCount;
 
 		/// <summary>
 		/// Holds the default number of operand results for this instruction.
 		/// </summary>
-		protected byte _resultDefaultCount;
+		protected byte resultDefaultCount;
 
 		#endregion // Data members
 
@@ -37,13 +37,13 @@ namespace Mosa.Compiler.Framework
 		/// Gets the default operand count of the instruction
 		/// </summary>
 		/// <value>The operand count.</value>
-		public byte DefaultOperandCount { get { return _operandDefaultCount; } }
+		public byte DefaultOperandCount { get { return operandDefaultCount; } }
 
 		/// <summary>
 		/// Gets the default result operand count of the instruction
 		/// </summary>
 		/// <value>The operand result count.</value>
-		public byte DefaultResultCount { get { return _resultDefaultCount; } }
+		public byte DefaultResultCount { get { return resultDefaultCount; } }
 
 		/// <summary>
 		/// Determines flow behavior of this instruction.
@@ -53,10 +53,7 @@ namespace Mosa.Compiler.Framework
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public virtual FlowControl FlowControl
-		{
-			get { return FlowControl.Next; }
-		}
+		public virtual FlowControl FlowControl { get { return FlowControl.Next; } }
 
 		#endregion // Properties
 
@@ -67,8 +64,8 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		public BaseInstruction()
 		{
-			_operandDefaultCount = 0;
-			_resultDefaultCount = 0;
+			operandDefaultCount = 0;
+			resultDefaultCount = 0;
 		}
 
 		/// <summary>
@@ -77,8 +74,8 @@ namespace Mosa.Compiler.Framework
 		/// <param name="operandCount">The operand count.</param>
 		public BaseInstruction(byte operandCount)
 		{
-			_operandDefaultCount = operandCount;
-			_resultDefaultCount = 0;
+			operandDefaultCount = operandCount;
+			resultDefaultCount = 0;
 		}
 
 		/// <summary>
@@ -88,8 +85,8 @@ namespace Mosa.Compiler.Framework
 		/// <param name="resultCount">The result count.</param>
 		public BaseInstruction(byte operandCount, byte resultCount)
 		{
-			_resultDefaultCount = resultCount;
-			_operandDefaultCount = operandCount;
+			resultDefaultCount = resultCount;
+			operandDefaultCount = operandCount;
 		}
 
 		#endregion // Construction
@@ -101,7 +98,7 @@ namespace Mosa.Compiler.Framework
 		/// </summary>
 		/// <param name="ctx">The context.</param>
 		/// <param name="compiler">The compiler.</param>
-		public virtual void Validate(Context ctx, IMethodCompiler compiler)
+		public virtual void Validate(Context ctx, BaseMethodCompiler compiler)
 		{
 			/* Default implementation is to do nothing */
 		}
@@ -182,18 +179,18 @@ namespace Mosa.Compiler.Framework
 				s.Length = s.Length - 1;
 			}
 
-			if (context.Branch != null)
+			if (context.BranchTargets != null)
 			{
-				for (int i = 0; (i < 2) && (i < context.Branch.Targets.Length); i++)
+				for (int i = 0; (i < 2) && (i < context.BranchTargets.Length); i++)
 				{
-					s.Append(String.Format(@" L_{0:X4},", context.Branch.Targets[i]));
+					s.Append(String.Format(@" L_{0:X4},", context.BranchTargets[i]));
 				}
 
-				if (context.Branch.Targets.Length > 2)
+				if (context.BranchTargets.Length > 2)
 				{
 					s.Append(" [more]");
 				}
-				else if (context.Branch.Targets.Length > 0)
+				else if (context.BranchTargets.Length > 0)
 				{
 					s.Length = s.Length - 1;
 				}

@@ -12,8 +12,6 @@ using System;
 
 using Mosa.Compiler.Framework;
 using Mosa.Compiler.Framework.Stages;
-using Mosa.Compiler.Framework.Operands;
-using Mosa.Compiler.Framework.Platform;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Platform.x86.Stages;
@@ -43,11 +41,6 @@ namespace Mosa.Platform.x86
 		/// The type of the elf machine.
 		/// </value>
 		public override ushort ElfMachineType { get { return 3; } }
-
-		/// <summary>
-		/// Holds the calling conversion
-		/// </summary>
-		private ICallingConvention callingConvention;
 
 		/// <summary>
 		/// Defines the register set of the target architecture.
@@ -113,6 +106,7 @@ namespace Mosa.Platform.x86
 		private Architecture(ArchitectureFeatureFlags architectureFeatures)
 		{
 			this.architectureFeatures = architectureFeatures;
+			this.CallingConvention = new DefaultCallingConvention(this);
 		}
 
 		/// <summary>
@@ -141,6 +135,14 @@ namespace Mosa.Platform.x86
 		}
 
 		/// <summary>
+		/// Retrieves the stack pointer register of the x86.
+		/// </summary>
+		public override Register StackPointerRegister
+		{
+			get { return GeneralPurposeRegister.ESP; }
+		}
+
+		/// <summary>
 		/// Gets the name of the platform.
 		/// </summary>
 		/// <value>
@@ -166,32 +168,20 @@ namespace Mosa.Platform.x86
 		}
 
 		/// <summary>
-		/// Creates a new result operand of the requested type.
+		/// Extends the compiler pipeline with x86 specific stages.
 		/// </summary>
-		/// <param name="signatureType">The type requested.</param>
-		/// <param name="instructionLabel">The label of the instruction requesting the operand.</param>
-		/// <param name="operandStackIndex">The stack index of the operand.</param>
-		/// <returns>A new operand usable as a result operand.</returns>
-		public override Operand CreateResultOperand(SigType signatureType)
+		/// <param name="compilerPipeline">The pipeline to extend.</param>
+		public override void ExtendCompilerPipeline(CompilerPipeline compilerPipeline)
 		{
-			return new RegisterOperand(signatureType, GeneralPurposeRegister.EAX);
-		}
-
-		/// <summary>
-		/// Extends the assembly compiler pipeline with x86 specific stages.
-		/// </summary>
-		/// <param name="assemblyCompilerPipeline">The assembly compiler pipeline to extend.</param>
-		public override void ExtendAssemblyCompilerPipeline(CompilerPipeline assemblyCompilerPipeline)
-		{
-			assemblyCompilerPipeline.InsertAfterFirst<IAssemblyCompilerStage>(
+			compilerPipeline.InsertAfterFirst<ICompilerStage>(
 				new InterruptVectorStage()
 			);
 
-			assemblyCompilerPipeline.InsertAfterFirst<InterruptVectorStage>(
+			compilerPipeline.InsertAfterFirst<InterruptVectorStage>(
 				new ExceptionVectorStage()
 			);
 
-			assemblyCompilerPipeline.InsertAfterLast<TypeLayoutStage>(
+			compilerPipeline.InsertAfterLast<TypeLayoutStage>(
 				new MethodTableBuilderStage()
 			);
 
@@ -209,6 +199,7 @@ namespace Mosa.Platform.x86
 			methodCompilerPipeline.InsertAfterLast<PlatformStubStage>(
 				new IMethodCompilerStage[]
 				{
+					//new IntrinsicTransformationStage(),
 					new LongOperandTransformationStage(),
 					new AddressModeConversionStage(),
 					new IRTransformationStage(),
@@ -224,21 +215,7 @@ namespace Mosa.Platform.x86
 				new ExceptionLayoutStage()
 			);
 		}
-
-		/// <summary>
-		/// Retrieves a calling convention object for the requested calling convention.
-		/// </summary>
-		/// <returns>
-		/// An instance of <see cref="ICallingConvention"/>.
-		/// </returns>
-		public override ICallingConvention GetCallingConvention()
-		{
-			if (callingConvention == null)
-				callingConvention = new DefaultCallingConvention(this);
-
-			return callingConvention;
-		}
-
+		
 		/// <summary>
 		/// Gets the type memory requirements.
 		/// </summary>
@@ -275,16 +252,6 @@ namespace Mosa.Platform.x86
 
 				default: memorySize = alignment = 4; break;
 			}
-		}
-
-		/// <summary>
-		/// Gets the intrinsic instruction by type
-		/// </summary>
-		/// <param name="type">The type.</param>
-		/// <returns></returns>
-		public override IIntrinsicMethod GetIntrinsicMethod(Type type)
-		{
-			return Intrinsic.Method.Get(type);
 		}
 
 		/// <summary>

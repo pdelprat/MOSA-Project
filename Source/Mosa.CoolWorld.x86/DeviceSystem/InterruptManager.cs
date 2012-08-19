@@ -12,7 +12,7 @@ using Mosa.ClassLib;
 namespace Mosa.DeviceSystem
 {
 	/// <summary>
-	/// The Interrupt Manager dispatches interrupts to the approporate hardware device drivers
+	/// The Interrupt Manager dispatches interrupts to the appropriate hardware device drivers
 	/// </summary>
 	public class InterruptManager
 	{
@@ -48,16 +48,19 @@ namespace Mosa.DeviceSystem
 		/// <param name="irq">The irq.</param>
 		public void ProcessInterrupt(byte irq, byte error)
 		{
-			try
-			{
-				spinLock.Enter();
-				foreach (IHardwareDevice hardwareDevice in interruptHandlers[irq])
-					hardwareDevice.OnInterrupt();
-			}
-			finally
-			{
-				spinLock.Exit();
-			}
+			//Mosa.Kernel.x86.Debug.Trace("Enter InterruptManager.ProcessInterrupt");		
+
+			//spinLock.Enter();
+			var handlers = interruptHandlers[irq];
+			var hardwareDevice = handlers.First.value;
+			hardwareDevice.OnInterrupt();
+
+			//foreach (IHardwareDevice hardwareDevice in interruptHandlers[irq])
+			//{
+			//    hardwareDevice.OnInterrupt();
+			//}
+
+			//spinLock.Exit();	
 		}
 
 		/// <summary>

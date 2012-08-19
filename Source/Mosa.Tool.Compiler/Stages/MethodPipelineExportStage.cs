@@ -17,9 +17,9 @@ using Mosa.Compiler.TypeSystem;
 namespace Mosa.Tool.Compiler.Stages
 {
 	/// <summary>
-	/// An assembly compilation stage, which exports each method pipeline stage
+	/// An compilation stage, which exports each method pipeline stage
 	/// </summary>
-	public sealed class MethodPipelineExportStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage, IPipelineStage, IInstructionTraceListener
+	public sealed class MethodPipelineExportStage : BaseCompilerStage, ICompilerStage, IPipelineStage, ITraceListener
 	{
 		#region Data members
 
@@ -32,7 +32,7 @@ namespace Mosa.Tool.Compiler.Stages
 		/// <summary>
 		/// 
 		/// </summary>
-		private ConfigurableInstructionTraceFilter filter = new ConfigurableInstructionTraceFilter();
+		private ConfigurableTraceFilter filter = new ConfigurableTraceFilter();
 
 		#endregion // Data members
 
@@ -47,9 +47,9 @@ namespace Mosa.Tool.Compiler.Stages
 
 		#endregion // Construction
 
-		#region IAssemblyCompilerStage Members
+		#region ICompilerStage Members
 
-		void IAssemblyCompilerStage.Setup(AssemblyCompiler compiler)
+		void ICompilerStage.Setup(BaseCompiler compiler)
 		{
 			base.Setup(compiler);
 
@@ -59,7 +59,7 @@ namespace Mosa.Tool.Compiler.Stages
 		/// <summary>
 		/// Performs stage specific processing on the compiler context.
 		/// </summary>
-		void IAssemblyCompilerStage.Run()
+		void ICompilerStage.Run()
 		{
 			filter.IsLogging = !string.IsNullOrEmpty(MethodPipelineExportDirectory);
 
@@ -69,18 +69,18 @@ namespace Mosa.Tool.Compiler.Stages
 				filter.StageMatch = MatchType.Exclude;
 				filter.Stage = "PlatformStubStage|ExceptionLayoutStage";
 				
-				compiler.InternalTrace.InstructionTraceFilter = filter;
-				compiler.InternalTrace.InstructionTraceListener = this;
+				compiler.InternalTrace.TraceFilter = filter;
+				compiler.InternalTrace.TraceListener = this;
 
 				Directory.CreateDirectory(MethodPipelineExportDirectory);
 			}
 		}
 
-		#endregion // IAssemblyCompilerStage Members
+		#endregion // ICompilerStage Members
 
-		#region IInstructionTraceListener Members
+		#region ITraceListener Members
 
-		void IInstructionTraceListener.NotifyNewInstructionTrace(RuntimeMethod method, string stage, string log)
+		void ITraceListener.SubmitInstructionTraceInformation(RuntimeMethod method, string stage, string log)
 		{
 			if (string.IsNullOrEmpty(MethodPipelineExportDirectory))
 				return;
@@ -95,7 +95,12 @@ namespace Mosa.Tool.Compiler.Stages
 			File.AppendAllText(fullname, "[" + stage + "]" + Environment.NewLine + Environment.NewLine + log + Environment.NewLine);
 		}
 
-		#endregion // IInstructionTraceListener Members
+		void ITraceListener.SubmitDebugStageInformation(RuntimeMethod method, string stage, string line)
+		{
+			// nothing
+		}
+
+		#endregion // BaseInstructionTraceListener Members
 
 	}
 }

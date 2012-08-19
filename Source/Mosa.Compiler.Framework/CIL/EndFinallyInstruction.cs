@@ -13,7 +13,7 @@ namespace Mosa.Compiler.Framework.CIL
 	/// <summary>
 	/// 
 	/// </summary>
-	public sealed class EndFinallyInstruction : BaseInstruction
+	public sealed class EndFinallyInstruction : BaseCILInstruction
 	{
 		#region Construction
 
@@ -28,10 +28,7 @@ namespace Mosa.Compiler.Framework.CIL
 
 		#endregion // Construction
 
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.EndFinally; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.EndFinally; } }
 
 		#region Methods
 

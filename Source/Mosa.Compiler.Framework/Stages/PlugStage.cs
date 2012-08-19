@@ -9,61 +9,35 @@
 
 using System;
 using System.Collections.Generic;
-
-using Mosa.Compiler.Common;
 using Mosa.Compiler.Linker;
-using Mosa.Compiler.TypeSystem;
 using Mosa.Compiler.Metadata.Signatures;
+using Mosa.Compiler.TypeSystem;
 
 namespace Mosa.Compiler.Framework.Stages
 {
 	/// <summary>
-	/// Emits metadata for assemblies and types
+	/// Searches for plug declarations
 	/// </summary>
-	public class PlugStage : BaseAssemblyCompilerStage, IAssemblyCompilerStage, IPlugSystem
+	public class PlugStage : BaseCompilerStage, ICompilerStage
 	{
 		#region Data members
-
-		private IAssemblyLinker linker;
-
-		// Method to Plug -> Plug
-		protected Dictionary<RuntimeMethod, RuntimeMethod> plugMethods = new Dictionary<RuntimeMethod, RuntimeMethod>();
 
 		protected RuntimeType plugTypeAttribute;
 		protected RuntimeType plugMethodAttribute;
 
 		#endregion // Data members
 
-		#region IPlugStage members
+		#region ICompilerStage members
 
-		/// <summary>
-		/// Gets the plug.
-		/// </summary>
-		/// <param name="method">The method.</param>
-		/// <returns></returns>
-		RuntimeMethod IPlugSystem.GetPlugMethod(RuntimeMethod method)
-		{
-			RuntimeMethod plug = null;
-
-			plugMethods.TryGetValue(method, out plug);
-
-			return plug;
-		}
-
-		#endregion // IPlugStage members
-
-		#region IAssemblyCompilerStage members
-
-		void IAssemblyCompilerStage.Setup(AssemblyCompiler compiler)
+		void ICompilerStage.Setup(BaseCompiler compiler)
 		{
 			base.Setup(compiler);
-			this.linker = RetrieveAssemblyLinkerFromCompiler();
 
 			plugTypeAttribute = typeSystem.GetType("Mosa.Internal.Plug", "Mosa.Internal.Plug", "PlugTypeAttribute");
 			plugMethodAttribute = typeSystem.GetType("Mosa.Internal.Plug", "Mosa.Internal.Plug", "PlugMethodAttribute");
 		}
 
-		void IAssemblyCompilerStage.Run()
+		void ICompilerStage.Run()
 		{
 			if (plugTypeAttribute == null | plugMethodAttribute == null)
 				return;
@@ -136,8 +110,8 @@ namespace Mosa.Compiler.Framework.Stages
 						if (targetType == null)
 						{
 							Trace(InternalTrace.CompilerEvent.Warning,
-								String.Format("Plug target type {0} not found. Ignoring plug.", 
-								targetAssemblyName != null ? (targetFullTypeName + "(in "+targetAssemblyName+")") : targetFullTypeName));
+								String.Format("Plug target type {0} not found. Ignoring plug.",
+								targetAssemblyName != null ? (targetFullTypeName + "(in " + targetAssemblyName + ")") : targetFullTypeName));
 							continue;
 						}
 
@@ -183,8 +157,8 @@ namespace Mosa.Compiler.Framework.Stages
 
 		private void Patch(RuntimeMethod targetMethod, RuntimeMethod method)
 		{
-			Trace(InternalTrace.CompilerEvent.Plug, targetMethod.ToString() + " with " + method.ToString());
-			plugMethods.Add(targetMethod, method);
+			Trace(InternalTrace.CompilerEvent.Plug, targetMethod.FullName + " with " + method.FullName);
+			compiler.PlugSystem.CreatePlug(method, targetMethod);
 		}
 
 		private RuntimeAttribute GetAttribute(List<RuntimeAttribute> attributes, RuntimeType plugAttribute)
@@ -277,7 +251,7 @@ namespace Mosa.Compiler.Framework.Stages
 
 			return target.Substring(pos + 1);
 		}
-		#endregion // IAssemblyCompilerStage members
+		#endregion // ICompilerStage members
 
 	}
 }

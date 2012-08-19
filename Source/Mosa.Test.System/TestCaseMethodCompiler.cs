@@ -12,10 +12,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Mosa.Compiler.Framework;
 using Mosa.Compiler.Framework.Stages;
-using Mosa.Compiler.Framework.Platform;
-using Mosa.Compiler.Framework.CIL;
-using Mosa.Compiler.Framework.IR;
-using Mosa.Compiler.InternalTrace;
 using Mosa.Compiler.Linker;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.TypeSystem;
@@ -29,39 +25,42 @@ namespace Mosa.Test.System
 
 		public IntPtr Address { get { return address; } }
 
-		public TestCaseMethodCompiler(TestCaseAssemblyCompiler assemblyCompiler, ICompilationSchedulerStage compilationScheduler, RuntimeType type, RuntimeMethod method)
-			: base(assemblyCompiler, type, method, null, compilationScheduler)
+		/// <summary>
+		/// Initializes a new instance of the <see cref="TestCaseMethodCompiler"/> class.
+		/// </summary>
+		/// <param name="compiler">The compiler.</param>
+		/// <param name="method">The method.</param>
+		public TestCaseMethodCompiler(TestCaseCompiler compiler, RuntimeMethod method)
+			: base(compiler, method, null)
 		{
 			// Populate the pipeline
-			this.Pipeline.AddRange(new IMethodCompilerStage[] {
-				new DecodingStage(),
+			Pipeline.AddRange(new IMethodCompilerStage[] {
+				new CILDecodingStage(),
 				new BasicBlockBuilderStage(),
 				new ExceptionPrologueStage(),
-				new OperandDeterminationStage(),
+				new OperandAssignmentStage(),
 				new StaticAllocationResolutionStage(),
-				//new ConstantFoldingStage(),
 				new CILTransformationStage(),
-				//new CILLeakGuardStage() { MustThrowCompilationException = true },
-				//InstructionStatisticsStage.Instance,
-				//new DominanceCalculationStage(),
-				//new PhiPlacementStage(),
-				//new EnterSSA(),
 				
-				//new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PreFolding),
-				//new ConstantFoldingStage(),
-				//new ConstantPropagationStage(ConstantPropagationStage.PropagationStage.PostFolding),
-
-				//new LeaveSSA(),
+				new LocalVariablePromotionStage(), 
+				new	EdgeSplitStage(),
+				new DominanceCalculationStage(),
+				new PhiPlacementStage(),
+				new EnterSSAStage(),
+				new SSAOptimizations(),
+				new LeaveSSA(),
+				
 				new StackLayoutStage(),
+				new PlatformIntrinsicTransformationStage(),
 				new PlatformStubStage(),
-				//new BlockReductionStage(),
 				new LoopAwareBlockOrderStage(),
 				//new SimpleTraceBlockOrderStage(),
 				//new ReverseBlockOrderStage(),  // reverse all the basic blocks and see if it breaks anything
-				//new BasicBlockOrderStage()	
 				new CodeGenerationStage(),				
 			});
 		}
+
+		#region BaseMethodCompiler Overrides
 
 		public override Stream RequestCodeStream()
 		{
@@ -84,10 +83,12 @@ namespace Mosa.Test.System
 			if ((Method.Attributes & attrs) == attrs && Method.Name == ".cctor")
 			{
 				CCtor cctor = (CCtor)Marshal.GetDelegateForFunctionPointer(address, typeof(CCtor));
-				(AssemblyCompiler as TestCaseAssemblyCompiler).QueueCCtorForInvocationAfterCompilation(cctor);
+				(Compiler as TestCaseCompiler).QueueCCtorForInvocationAfterCompilation(cctor);
 			}
 
 			base.EndCompile();
 		}
+
+		#endregion // BaseMethodCompiler Overrides
 	}
 }

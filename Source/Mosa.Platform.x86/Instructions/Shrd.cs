@@ -9,7 +9,6 @@
 
 using System;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata.Signatures;
 
 namespace Mosa.Platform.x86.Instructions
@@ -37,25 +36,25 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if (third is RegisterOperand)
+			if (third.IsRegister)
 				return Register;
-			if (third is ConstantOperand)
+			if (third.IsConstant)
 				return Constant;
 			throw new ArgumentException(@"No opcode for operand type.");
 		}
 
 		/// <summary>
-		/// 
+		/// Emits the specified platform instruction.
 		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="emitter"></param>
+		/// <param name="context">The context.</param>
+		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
 			OpCode opCode = ComputeOpCode(context.Result, context.Operand1, context.Operand2);
-			if (context.Operand2 is ConstantOperand)
+			if (context.Operand2.IsConstant)
 			{
-				ConstantOperand op = context.Operand2 as ConstantOperand;
-				op = new ConstantOperand(BuiltInSigType.Byte, op.Value);
+				// FIXME: Conversion not necessary if constant already byte.
+				Operand op = Operand.CreateConstant(BuiltInSigType.Byte, context.Operand2.Value);
 				emitter.Emit(opCode, context.Result, context.Operand1, op);
 			}
 			else

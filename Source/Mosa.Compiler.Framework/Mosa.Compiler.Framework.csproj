@@ -22,6 +22,21 @@
     <OldToolsVersion>3.5</OldToolsVersion>
     <UpgradeBackupLocation />
     <TargetFrameworkProfile />
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -62,7 +77,27 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Stages\AssemblyMemberCompilationSchedulerStage.cs" />
+    <Compile Include="BasicBlocks.cs" />
+    <Compile Include="LiveRangeAnalysis.cs" />
+    <Compile Include="IIntrinsicInternalMethod.cs" />
+    <Compile Include="DelegatePatcher.cs" />
+    <Compile Include="ICompilationScheduler.cs" />
+    <Compile Include="Counters.cs" />
+    <Compile Include="IR\IntrinsicMethodCall.cs" />
+    <Compile Include="IR\LoadZeroExtended.cs" />
+    <Compile Include="IR\LoadSignExtended.cs" />
+    <Compile Include="SimpleFastDominance.cs" />
+    <Compile Include="LoopAwareBlockOrder.cs" />
+    <Compile Include="CompilationScheduler.cs" />
+    <Compile Include="Stages\PlatformIntrinsicTransformationStage.cs" />
+    <Compile Include="Stages\PlugSystem.cs" />
+    <Compile Include="Stages\IRCheckStage.cs" />
+    <Compile Include="Stages\LoopAwareBlockOrderStage.cs" />
+    <Compile Include="Stages\SSAOptimizations.cs" />
+    <Compile Include="Stages\EdgeSplitStage.cs" />
+    <Compile Include="Stages\SimpleRegisterAllocatorStage.cs" />
+    <Compile Include="VirtualRegisterLayout.cs" />
+    <Compile Include="Stages\LocalVariablePromotionStage.cs" />
     <Compile Include="BaseCodeEmitter.cs" />
     <Compile Include="BaseInstruction.cs" />
     <Compile Include="Stages\BasicBlockBuilderStage.cs" />
@@ -81,72 +116,63 @@
     <Compile Include="CIL\CallInstruction.cs" />
     <Compile Include="CIL\CallvirtInstruction.cs" />
     <Compile Include="CIL\CastclassInstruction.cs" />
-    <Compile Include="CIL\CILLeakGuardStage.cs" />
     <Compile Include="CIL\TailPrefixInstruction.cs" />
     <Compile Include="CIL\VolatilePrefixInstruction.cs" />
     <Compile Include="CIL\ReadOnlyPrefixInstruction.cs" />
-    <Compile Include="CIL\DecodingStage.cs" />
+    <Compile Include="Stages\CILDecodingStage.cs" />
     <Compile Include="CIL\BreakInstruction.cs" />
-    <Compile Include="BaseAssemblyCompilerStage.cs" />
-    <Compile Include="Stages\ConstantFoldingStage.cs" />
+    <Compile Include="BaseCompilerStage.cs" />
     <Compile Include="Platform\BasePlatformInstruction.cs" />
     <Compile Include="Platform\BasePlatformTransformationStage.cs" />
     <Compile Include="Platform\IRegisterUsage.cs" />
     <Compile Include="RegisterBitmap.cs" />
-    <Compile Include="Operands\StackSizeOperand.cs" />
     <Compile Include="StackLayout.cs" />
-    <Compile Include="RegisterMap.cs" />
+    <Compile Include="Stages\RegisterUsageAnalyzerStage.cs" />
     <Compile Include="Stages\OperandUsageAnalyzerStage.cs" />
-    <Compile Include="Stages\SingleUseMarkerStage.cs" />
-    <Compile Include="IPlugSystem.cs" />
+    <Compile Include="Stages\MultipleDefinitionMarkerStage.cs" />
     <Compile Include="ITypeInitializerSchedulerStage.cs" />
     <Compile Include="Stages\PlugStage.cs" />
     <Compile Include="Stages\ExceptionPrologueStage.cs" />
-    <Compile Include="Stages\DelegateTypePatchStage.cs" />
-    <Compile Include="IR\ExceptionPrologueInstruction.cs" />
+    <Compile Include="IR\ExceptionPrologue.cs" />
     <Compile Include="Stages\MetadataStage.cs" />
     <Compile Include="Stages\EnterSSAStage.cs" />
     <Compile Include="ExceptionClauseHeader.cs" />
     <Compile Include="InstructionLogger.cs" />
     <Compile Include="Stages\LeaveSSAStage.cs" />
-    <Compile Include="Stages\OperandDeterminationStage.cs" />
-    <Compile Include="Operands\SsaOperand.cs" />
-    <Compile Include="Operands\VirtualRegisterOperand.cs" />
+    <Compile Include="Stages\OperandAssignmentStage.cs" />
     <Compile Include="CompilerOptions.cs" />
     <Compile Include="Stages\PhiPlacementStage.cs" />
     <Compile Include="Stages\StaticAllocationResolutionStage.cs" />
     <Compile Include="Stages\TypeLayoutStage.cs" />
-    <Compile Include="IR\ThrowInstruction.cs" />
+    <Compile Include="IR\Throw.cs" />
     <Compile Include="Stages\GenericsResolverStage.cs" />
-    <Compile Include="ICompilationSchedulerStage.cs" />
     <Compile Include="Intrinsics\InternalAllocateString.cs" />
-    <Compile Include="IR\AddFInstruction.cs" />
-    <Compile Include="IR\AddSInstruction.cs" />
-    <Compile Include="IR\AddUInstruction.cs" />
-    <Compile Include="IR\BreakInstruction.cs" />
-    <Compile Include="IR\DivFInstruction.cs" />
-    <Compile Include="IR\DivSInstruction.cs" />
-    <Compile Include="IR\DivUInstruction.cs" />
-    <Compile Include="IR\MulFInstruction.cs" />
-    <Compile Include="IR\MulSInstruction.cs" />
-    <Compile Include="IR\MulUInstruction.cs" />
-    <Compile Include="IR\RemFInstruction.cs" />
-    <Compile Include="IR\RemSInstruction.cs" />
-    <Compile Include="IR\RemUInstruction.cs" />
-    <Compile Include="IR\SubFInstruction.cs" />
-    <Compile Include="IR\SubSInstruction.cs" />
-    <Compile Include="IR\SubUInstruction.cs" />
-    <Compile Include="IR\SwitchInstruction.cs" />
+    <Compile Include="IR\AddFloat.cs" />
+    <Compile Include="IR\AddSigned.cs" />
+    <Compile Include="IR\AddUnsigned.cs" />
+    <Compile Include="IR\Break.cs" />
+    <Compile Include="IR\DivFloat.cs" />
+    <Compile Include="IR\DivSigned.cs" />
+    <Compile Include="IR\DivUnsigned.cs" />
+    <Compile Include="IR\MulFloat.cs" />
+    <Compile Include="IR\MulSigned.cs" />
+    <Compile Include="IR\MulUnsigned.cs" />
+    <Compile Include="IR\RemFloat.cs" />
+    <Compile Include="IR\RemSigned.cs" />
+    <Compile Include="IR\RemUnsigned.cs" />
+    <Compile Include="IR\SubFloat.cs" />
+    <Compile Include="IR\SubSigned.cs" />
+    <Compile Include="IR\SubUnsigned.cs" />
+    <Compile Include="IR\Switch.cs" />
     <Compile Include="Stages\MethodCompilerSchedulerStage.cs" />
-    <Compile Include="Operands\SymbolOperand.cs" />
     <Compile Include="Stages\PlatformStubStage.cs" />
-    <Compile Include="IIntrinsicMethod.cs" />
+    <Compile Include="IIntrinsicPlatformMethod.cs" />
     <Compile Include="IBlockOrderStage.cs" />
     <Compile Include="IPipelineStage.cs" />
-    <Compile Include="IR\CILTransformationStage.cs" />
+    <Compile Include="Stages\CILTransformationStage.cs" />
     <Compile Include="CIL\ConstrainedPrefixInstruction.cs" />
     <Compile Include="CIL\ConversionInstruction.cs" />
-    <Compile Include="CIL\Instruction.cs" />
+    <Compile Include="CIL\CILInstruction.cs" />
     <Compile Include="CIL\MethodFlags.cs" />
     <Compile Include="CIL\MethodHeader.cs" />
     <Compile Include="CIL\StoreInstruction.cs" />
@@ -218,80 +244,63 @@
     <Compile Include="CIL\UnaryInstruction.cs" />
     <Compile Include="CIL\UnboxAnyInstruction.cs" />
     <Compile Include="CIL\UnboxInstruction.cs" />
-    <Compile Include="Branch.cs" />
     <Compile Include="Context.cs" />
     <Compile Include="BaseMethodCompilerStage.cs" />
     <Compile Include="ICodeEmitter.cs" />
-    <Compile Include="IR\AddressOfInstruction.cs" />
-    <Compile Include="IR\ArithmeticShiftRightInstruction.cs" />
-    <Compile Include="IR\CallInstruction.cs" />
+    <Compile Include="IR\AddressOf.cs" />
+    <Compile Include="IR\ArithmeticShiftRight.cs" />
+    <Compile Include="IR\Call.cs" />
     <Compile Include="IR\ConditionCode.cs" />
-    <Compile Include="IR\NopInstruction.cs" />
-    <Compile Include="IR\IConditionalInstruction.cs" />
-    <Compile Include="IR\LiteralData.cs" />
-    <Compile Include="IR\Instruction.cs" />
-    <Compile Include="IR\EpilogueInstruction.cs" />
-    <Compile Include="IR\FloatingPointCompareInstruction.cs" />
-    <Compile Include="IR\FloatingPointToIntegerConversionInstruction.cs" />
-    <Compile Include="IR\IIRInstruction.cs" />
+    <Compile Include="IR\Nop.cs" />
+    <Compile Include="IR\IRInstruction.cs" />
+    <Compile Include="IR\Epilogue.cs" />
+    <Compile Include="IR\FloatCompare.cs" />
+    <Compile Include="IR\FloatToIntegerConversion.cs" />
     <Compile Include="IR\IIRVisitor.cs" />
-    <Compile Include="IR\IntegerCompareBranchInstruction.cs" />
-    <Compile Include="IR\IntegerCompareInstruction.cs" />
-    <Compile Include="IR\IntegerToFloatingPointConversionInstruction.cs" />
-    <Compile Include="IR\BaseInstruction.cs" />
-    <Compile Include="IR\JmpInstruction.cs" />
-    <Compile Include="IR\LoadInstruction.cs" />
-    <Compile Include="IR\LogicalAndInstruction.cs" />
-    <Compile Include="IR\LogicalNotInstruction.cs" />
-    <Compile Include="IR\LogicalOrInstruction.cs" />
-    <Compile Include="IR\LogicalXorInstruction.cs" />
-    <Compile Include="IR\MoveInstruction.cs" />
+    <Compile Include="IR\IntegerCompareBranch.cs" />
+    <Compile Include="IR\IntegerCompare.cs" />
+    <Compile Include="IR\IntegerToFloatConversion.cs" />
+    <Compile Include="IR\BaseIRInstruction.cs" />
+    <Compile Include="IR\Jmp.cs" />
+    <Compile Include="IR\Load.cs" />
+    <Compile Include="IR\LogicalAnd.cs" />
+    <Compile Include="IR\LogicalNot.cs" />
+    <Compile Include="IR\LogicalOr.cs" />
+    <Compile Include="IR\LogicalXor.cs" />
+    <Compile Include="IR\Move.cs" />
     <Compile Include="IR\OneOperandInstruction.cs" />
-    <Compile Include="IR\PhiData.cs" />
-    <Compile Include="IR\PhiInstruction.cs" />
-    <Compile Include="IR\PrologueInstruction.cs" />
-    <Compile Include="IR\ReturnInstruction.cs" />
-    <Compile Include="IR\ShiftLeftInstruction.cs" />
-    <Compile Include="IR\ShiftRightInstruction.cs" />
-    <Compile Include="IR\SignExtendedMoveInstruction.cs" />
-    <Compile Include="IR\StoreInstruction.cs" />
+    <Compile Include="IR\Phi.cs" />
+    <Compile Include="IR\Prologue.cs" />
+    <Compile Include="IR\Return.cs" />
+    <Compile Include="IR\ShiftLeft.cs" />
+    <Compile Include="IR\ShiftRight.cs" />
+    <Compile Include="IR\SignExtendedMove.cs" />
+    <Compile Include="IR\Store.cs" />
     <Compile Include="IR\ThreeOperandInstruction.cs" />
     <Compile Include="IR\TwoOperandInstruction.cs" />
-    <Compile Include="IR\ZeroExtendedMoveInstruction.cs" />
+    <Compile Include="IR\ZeroExtendedMove.cs" />
     <Compile Include="IVisitor.cs" />
-    <Compile Include="IBranch.cs" />
-    <Compile Include="IIRInstruction.cs" />
-    <Compile Include="Platform\IPlatformInstruction.cs" />
-    <Compile Include="CIL\ICILInstruction.cs" />
-    <Compile Include="IInstruction.cs" />
     <Compile Include="Stages\FlowGraphVisualizationStage.cs" />
     <Compile Include="CIL\NopInstruction.cs" />
     <Compile Include="InstructionSet.cs" />
     <Compile Include="InstructionData.cs" />
-    <Compile Include="CIL\BaseInstruction.cs" />
-    <Compile Include="Operands\StringOperand.cs" />
+    <Compile Include="CIL\BaseCILInstruction.cs" />
     <Compile Include="Stages\ReverseBlockOrderStage.cs" />
     <Compile Include="RuntimeMethodData.cs" />
-    <Compile Include="Stages\StrengthReductionStage.cs" />
     <Compile Include="Stages\SimpleTraceBlockOrderStage.cs" />
-    <Compile Include="Stages\LoopAwareBlockOrderStage.cs" />
     <Compile Include="Stages\LocalCSEStage.cs" />
-    <Compile Include="IMethodCompiler.cs" />
-    <Compile Include="Linker\BaseAssemblyLinkerStage.cs" />
+    <Compile Include="Linker\BaseLinkerStage.cs" />
     <Compile Include="Linker\LinkerGeneratedMethod.cs" />
     <Compile Include="Linker\LinkerGeneratedType.cs" />
     <Compile Include="Linker\LinkerMethodCompiler.cs" />
     <Compile Include="Linker\LinkTimeCodeGenerator.cs" />
-    <Compile Include="AssemblyCompiler.cs">
+    <Compile Include="BaseCompiler.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="BasicArchitecture.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="BasicBlock.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Stages\BlockReductionStage.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Stages\CodeGenerationStage.cs">
@@ -306,12 +315,6 @@
     <Compile Include="CompilerPipeline.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Operands\ConstantOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Stages\ConstantPropagationStage.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Stages\DominanceCalculationStage.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -321,13 +324,10 @@
     <Compile Include="IArchitecture.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="IAssemblyCompilerStage.cs">
+    <Compile Include="ICompilerStage.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ICallingConvention.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="ICodeGenerationStage.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="IDominanceProvider.cs">
@@ -345,49 +345,19 @@
     <Compile Include="IStackLayoutProvider.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Operands\LabelOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\MemberOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\MemoryOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="BaseMethodCompiler.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Operands\ObjectFieldOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\Operand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\ParameterOperand.cs">
+    <Compile Include="Operand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Register.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Operands\RegisterOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Stages\StackLayoutStage.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Operands\StackOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="StackTypeCode.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\StaticFieldOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\TemporaryOperand.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Operands\LocalVariableOperand.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="IR\VmCall.cs" />
@@ -414,6 +384,22 @@
       <Name>Mosa.Compiler.TypeSystem</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 3.1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

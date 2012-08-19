@@ -10,7 +10,6 @@
 using System;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 
 namespace Mosa.Platform.x86.Instructions
 {
@@ -34,10 +33,8 @@ namespace Mosa.Platform.x86.Instructions
 		public override RegisterBitmap GetInputRegisters(Context context)
 		{
 			// Special case when the input register does not matter, example: XOR EAX, EAX. 
-			RegisterOperand result = context.Result as RegisterOperand;
-			RegisterOperand operand = context.Operand1 as RegisterOperand;
 
-			if (result != null && operand != null && result.Register == operand.Register)
+			if (context.Result.IsCPURegister && context.Operand1.IsCPURegister && context.Result.Register == context.Operand1.Register)
 				return NoRegisters;
 
 			return base.GetInputRegisters(context);
@@ -52,11 +49,11 @@ namespace Mosa.Platform.x86.Instructions
 		/// <returns></returns>
 		protected override OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
-			if ((destination is RegisterOperand) && (source is ConstantOperand)) return R_C;
-			if ((destination is RegisterOperand) && (source is MemoryOperand)) return R_M;
-			if ((destination is RegisterOperand) && (source is RegisterOperand)) return R_R;
-			if ((destination is MemoryOperand) && (source is RegisterOperand)) return M_R;
-			if ((destination is MemoryOperand) && (source is ConstantOperand)) return M_C;
+			if ((destination.IsRegister) && (source.IsConstant)) return R_C;
+			if ((destination.IsRegister) && (source.IsMemoryAddress)) return R_M;
+			if ((destination.IsRegister) && (source.IsRegister)) return R_R;
+			if ((destination.IsMemoryAddress) && (source.IsRegister)) return M_R;
+			if ((destination.IsMemoryAddress) && (source.IsConstant)) return M_C;
 
 			throw new ArgumentException(@"No opcode for operand type.");
 		}

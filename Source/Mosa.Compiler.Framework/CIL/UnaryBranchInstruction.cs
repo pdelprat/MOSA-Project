@@ -44,10 +44,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// building. Any instruction that alters the control flow must override
 		/// this property and correctly identify its control flow modifications.
 		/// </remarks>
-		public override FlowControl FlowControl
-		{
-			get { return FlowControl.ConditionalBranch; }
-		}
+		public override FlowControl FlowControl { get { return FlowControl.ConditionalBranch; } }
 
 		#endregion // Properties
 
@@ -102,7 +99,7 @@ namespace Mosa.Compiler.Framework.CIL
 		/// <returns></returns>
 		protected override string GetModifier(Context context)
 		{
-			OpCode opCode = ((context.Instruction) as CIL.ICILInstruction).OpCode;
+			OpCode opCode = ((context.Instruction) as CIL.BaseCILInstruction).OpCode;
 			switch (opCode)
 			{
 				case OpCode.Brtrue: return @"true";

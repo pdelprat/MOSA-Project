@@ -8,9 +8,9 @@
  *  Michael Ruck (grover) <sharpos@michaelruck.de>
  */
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Mosa.Compiler.Framework.IR;
 
 namespace Mosa.Compiler.Framework.Stages
 {
@@ -40,27 +40,29 @@ namespace Mosa.Compiler.Framework.Stages
 		/// </summary>
 		void IMethodCompilerStage.Run()
 		{
-			if (methodCompiler.PlugSystem != null)
-				if (methodCompiler.PlugSystem.GetPlugMethod(this.methodCompiler.Method) != null)
-					return;
+			if (methodCompiler.Compiler.PlugSystem.GetPlugMethod(methodCompiler.Method) != null)
+				return;
+
+			if (!methodCompiler.Method.HasCode)
+				return;
 
 			// Create the prologue block
-			Context ctx = new Context(instructionSet);
+			Context context = new Context(instructionSet);
 			// Add a jump instruction to the first block from the prologue
-			ctx.AppendInstruction(IR.Instruction.JmpInstruction);
-			ctx.SetBranch(0);
-			ctx.Label = -1;
-			prologue = CreateBlock(-1, ctx.Index);
+			context.AppendInstruction(IRInstruction.Jmp);
+			context.SetBranch(0);
+			context.Label = BasicBlock.PrologueLabel;
+			prologue = basicBlocks.CreateBlock(BasicBlock.PrologueLabel, context.Index);
+			basicBlocks.AddHeaderBlock(prologue);
 
 			SplitIntoBlocks(0);
 
 			// Create the epilogue block
-			ctx = new Context(instructionSet);
+			context = new Context(instructionSet);
 			// Add null instruction, necessary to generate a block index
-			ctx.AppendInstruction(null);
-			ctx.Ignore = true;
-			ctx.Label = Int32.MaxValue;
-			epilogue = CreateBlock(Int32.MaxValue, ctx.Index);
+			context.AppendInstruction(null);
+			context.Label = BasicBlock.EpilogueLabel;
+			epilogue = basicBlocks.CreateBlock(BasicBlock.EpilogueLabel, context.Index);
 
 			// Link all the blocks together
 			BuildBlockLinks(prologue);
@@ -69,14 +71,17 @@ namespace Mosa.Compiler.Framework.Stages
 			{
 				if (exceptionClause.HandlerOffset != 0)
 				{
-					BuildBlockLinks(FindBlock(exceptionClause.HandlerOffset));
+					BasicBlock basicBlock = basicBlocks.GetByLabel(exceptionClause.HandlerOffset);
+					BuildBlockLinks(basicBlock);
+					basicBlocks.AddHeaderBlock(basicBlock);
 				}
 				if (exceptionClause.FilterOffset != 0)
 				{
-					BuildBlockLinks(FindBlock(exceptionClause.FilterOffset));
+					BasicBlock basicBlock = basicBlocks.GetByLabel(exceptionClause.FilterOffset);
+					BuildBlockLinks(basicBlock);
+					basicBlocks.AddHeaderBlock(basicBlock);
 				}
 			}
-
 		}
 
 		#endregion // IMethodCompilerStage members
@@ -103,14 +108,14 @@ namespace Mosa.Compiler.Framework.Stages
 					case FlowControl.Throw: continue;
 					case FlowControl.Branch:
 						// Unconditional branch 
-						Debug.Assert(ctx.Branch.Targets.Length == 1);
-						if (!targets.ContainsKey(ctx.Branch.Targets[0]))
-							targets.Add(ctx.Branch.Targets[0], -1);
+						Debug.Assert(ctx.BranchTargets.Length == 1);
+						if (!targets.ContainsKey(ctx.BranchTargets[0]))
+							targets.Add(ctx.BranchTargets[0], -1);
 						continue;
 					case FlowControl.Switch: goto case FlowControl.ConditionalBranch;
 					case FlowControl.ConditionalBranch:
 						// Conditional branch with multiple targets
-						foreach (int target in ctx.Branch.Targets)
+						foreach (int target in ctx.BranchTargets)
 							if (!targets.ContainsKey(target))
 								targets.Add(target, -1);
 						int next = ctx.Next.Label;
@@ -119,9 +124,9 @@ namespace Mosa.Compiler.Framework.Stages
 						continue;
 					case FlowControl.EndFinally: continue;
 					case FlowControl.Leave:
-						Debug.Assert(ctx.Branch.Targets.Length == 1);
-						if (!targets.ContainsKey(ctx.Branch.Targets[0]))
-							targets.Add(ctx.Branch.Targets[0], -1);
+						Debug.Assert(ctx.BranchTargets.Length == 1);
+						if (!targets.ContainsKey(ctx.BranchTargets[0]))
+							targets.Add(ctx.BranchTargets[0], -1);
 						continue;
 					default:
 						Debug.Assert(false);
@@ -150,7 +155,7 @@ namespace Mosa.Compiler.Framework.Stages
 
 				if (targets.ContainsKey(ctx.Label))
 				{
-					CreateBlock(ctx.Label, ctx.Index);
+					basicBlocks.CreateBlock(ctx.Label, ctx.Index);
 
 					if (!ctx.IsFirstInstruction)
 					{
@@ -159,7 +164,7 @@ namespace Mosa.Compiler.Framework.Stages
 						if (flow == FlowControl.Next || flow == FlowControl.Call || flow == FlowControl.ConditionalBranch || flow == FlowControl.Switch)
 						{
 							// This jump joins fall-through blocks, by giving them a proper end.
-							prev.AppendInstruction(CIL.Instruction.Get(CIL.OpCode.Br));
+							prev.AppendInstruction(CIL.CILInstruction.Get(CIL.OpCode.Br));
 							prev.SetBranch(ctx.Label);
 
 							prev.SliceAfter();
@@ -179,8 +184,8 @@ namespace Mosa.Compiler.Framework.Stages
 
 			Debug.Assert(targets.Count <= 1);
 
-			if (FindBlock(0) == null)
-				CreateBlock(0, index);
+			//if (basicBlocks.FindBlock(0) == null)
+			//	basicBlocks.CreateBlock(0, index);
 		}
 
 		/// <summary>
@@ -203,10 +208,10 @@ namespace Mosa.Compiler.Framework.Stages
 					case FlowControl.Throw: continue;
 					case FlowControl.Switch: goto case FlowControl.ConditionalBranch;
 					case FlowControl.Branch:
-						FindAndLinkBlock(block, ctx.Branch.Targets[0]);
+						FindAndLinkBlock(block, ctx.BranchTargets[0]);
 						return;
 					case FlowControl.ConditionalBranch:
-						foreach (int target in ctx.Branch.Targets)
+						foreach (int target in ctx.BranchTargets)
 							FindAndLinkBlock(block, target);
 
 						int nextIndex = ctx.Index + 1;
@@ -216,7 +221,7 @@ namespace Mosa.Compiler.Framework.Stages
 						continue;
 					case FlowControl.EndFinally: return;
 					case FlowControl.Leave:
-						FindAndLinkBlock(block, ctx.Branch.Targets[0]);
+						FindAndLinkBlock(block, ctx.BranchTargets[0]);
 						return;
 					default:
 						Debug.Assert(false);
@@ -227,7 +232,7 @@ namespace Mosa.Compiler.Framework.Stages
 
 		private void FindAndLinkBlock(BasicBlock block, int target)
 		{
-			BasicBlock next = this.FindBlock(target);
+			BasicBlock next = basicBlocks.GetByLabel(target);
 			if (!block.NextBlocks.Contains(next))
 			{
 				LinkBlocks(block, next);
