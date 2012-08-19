@@ -157,6 +157,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.DivSInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
@@ -181,6 +183,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.FloatingPointCompareInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
@@ -391,30 +395,24 @@ namespace Mosa.Platform.AVR32
                 {
                     if (context.Result.Type.Type == CilElementType.R4)
                     {
-                        RegisterOperand load = new RegisterOperand(BuiltInSigType.IntPtr, GeneralPurposeRegister.R9);
-
-                        if (context.Operand1 is MemoryOperand)
-                        {
-                            context.SetInstruction(Instruction.LdInstruction, load, operand);
-                        }
-                        if (context.Operand1 is ConstantOperand)
-                        {
-                            context.SetInstruction(Instruction.MovInstruction, load, operand);
-                        }
-                        context.AppendInstruction(Instruction.StInstruction, result, load);
+                        //TODO:
+                        context.SetInstruction(Instruction.NopInstruction);
                     }
                     else if (context.Result.Type.Type == CilElementType.R8)
                     {
                         //TODO:
+                        context.SetInstruction(Instruction.NopInstruction);
                     }   
                 }
                 else if (context.Result.Type.Type == CilElementType.R8)
                 {
                     // TODO:
+                    context.SetInstruction(Instruction.NopInstruction);
                 }
                 else if (context.Result.Type.Type == CilElementType.R4)
                 {
                     // TODO:
+                    context.SetInstruction(Instruction.NopInstruction);
                 }
 			}
 			else
@@ -461,12 +459,14 @@ namespace Mosa.Platform.AVR32
 								else
 									if (context.Result is MemoryOperand && context.Operand1 is SymbolOperand)
 									{
-										//context.SetInstruction(Instruction.StInstruction, result, operand);
+										//TODO:
+                                        context.SetInstruction(Instruction.NopInstruction);
 									}
 									else
 										if (context.Result is MemoryOperand && context.Operand1 is LabelOperand)
 										{
-											//context.SetInstruction(Instruction.StInstruction, result, operand);
+                                            //TODO:
+                                            context.SetInstruction(Instruction.NopInstruction);
 										}
 
 			}
@@ -606,6 +606,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.ShiftLeftInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
@@ -654,6 +656,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.DivUInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
@@ -769,6 +773,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.RemSInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
@@ -777,6 +783,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.RemUInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>
@@ -934,6 +942,11 @@ namespace Mosa.Platform.AVR32
                     {
                         context.SetInstruction(Instruction.LduhInstruction, r8, source);
                     }
+                    if (elementType.Type == CilElementType.I4)
+                    {
+                        //TODO:
+                        context.SetInstruction(Instruction.NopInstruction);
+                    }
                 }
 
                 //TEMP
@@ -947,6 +960,8 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IR.IIRVisitor.FloatingPointToIntegerConversionInstruction(Context context)
 		{
+            //TODO:
+            context.SetInstruction(Instruction.NopInstruction);
 		}
 
 		/// <summary>

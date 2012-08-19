@@ -322,6 +322,7 @@ namespace Mosa.Platform.AVR32
 				// BUG: Return values are in FP0, not XMM#0
 				// TODO:
 				//ctx.SetInstruction(Instruction.MovInstruction, new RegisterOperand(operand.Type, SSE2Register.XMM0), operand);
+                ctx.SetInstruction(Instruction.NopInstruction);
 				return;
 			}
 			else if (size == 8 && (operand.Type.Type == CilElementType.I8 || operand.Type.Type == CilElementType.U8))
@@ -335,6 +336,8 @@ namespace Mosa.Platform.AVR32
 				//ctx.SetInstruction(Instruction.MovInstruction, new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.R8), opL);
 				//ctx.AppendInstruction(Instruction.MovInstruction, new RegisterOperand(HighType, GeneralPurposeRegister.R9), opH);
 
+                //TODO:
+                ctx.SetInstruction(Instruction.NopInstruction);
 				return;
 			}
 			else

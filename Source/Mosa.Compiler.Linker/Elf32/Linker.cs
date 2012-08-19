@@ -5,6 +5,7 @@
  *
  * Authors:
  *  Simon Wollwage (rootnode) <kintaro@think-in-co.de>
+ *  Pascal Delprat (pdelprat) <pascal.delprat@online.fr>
  */
 
 using System;
@@ -229,7 +230,7 @@ namespace Mosa.Compiler.Linker.Elf32
 				header.SectionHeaderNumber = (ushort)(Sections.Count + 2);
 				header.SectionHeaderOffset = header.ElfHeaderSize;
 
-				header.CreateIdent(IdentClass.Class32, IdentData.Data2LSB, null);
+				header.CreateIdent(IdentClass.Class32, IsLittleEndian ? IdentData.Data2LSB : IdentData.Data2MSB, null);
 
 				// Calculate the concatenated size of all section's data
 				uint offset = 0;

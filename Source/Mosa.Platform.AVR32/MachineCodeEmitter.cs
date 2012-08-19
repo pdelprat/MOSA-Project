@@ -22,7 +22,6 @@ namespace Mosa.Platform.AVR32
 	/// </summary>
 	public sealed class MachineCodeEmitter : BaseCodeEmitter, ICodeEmitter, IDisposable
 	{
-
 		public MachineCodeEmitter()
 		{
 		}
