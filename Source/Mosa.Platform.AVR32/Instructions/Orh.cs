@@ -9,7 +9,6 @@
  */
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using System;
 
@@ -20,7 +19,7 @@ namespace Mosa.Platform.AVR32.Instructions
 	/// Supported Format:
 	///     orh Rd, Imm 16 bits
 	/// </summary>
-	public class OrhInstruction : BaseInstruction
+	public class Orh : AVR32Instruction
 	{
 		#region Methods
 
@@ -31,16 +30,13 @@ namespace Mosa.Platform.AVR32.Instructions
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
-			if (context.Result is RegisterOperand && context.Operand1 is ConstantOperand)
+			if (context.Result.IsCPURegister && context.Operand1.IsConstant)
 			{
-				RegisterOperand destination = context.Result as RegisterOperand;
-				ConstantOperand immediate = context.Operand1 as ConstantOperand;
-
 				int value = 0;
 
-				if (IsConstantBetween(immediate, 0, 65535, out value))
+                if (IsConstantBetween(context.Operand1, 0, 65535, out value))
 				{
-					emitter.EmitRegisterOperandWithK16(0xA1, (byte)destination.Register.RegisterCode, (ushort)value);
+					emitter.EmitRegisterOperandWithK16(0xA1, (byte)context.Result.Register.RegisterCode, (ushort)value);
 				}
 				else
 					throw new OverflowException();

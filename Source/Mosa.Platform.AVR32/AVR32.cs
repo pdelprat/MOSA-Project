@@ -255,7 +255,7 @@ namespace Mosa.Platform.AVR32
 		/// <summary>
 		/// 
 		/// </summary>
-		//public static readonly Orh Ori = new Orh();
+		public static readonly Orh Orh = new Orh();
 
 		/// <summary>
 		/// 

@@ -88,11 +88,15 @@
     <Compile Include="Architecture.cs" />
     <Compile Include="ArchitectureFeatureFlags.cs" />
     <Compile Include="BaseTransformationStage.cs" />
+    <Compile Include="ConstantTransformationStage.cs" />
     <Compile Include="DefaultCallingConvention.cs" />
+    <Compile Include="FinalTtransformationStage.cs" />
     <Compile Include="GeneralPurposeRegister.cs" />
     <Compile Include="Instructions\Branch.cs" />
+    <Compile Include="Instructions\Orh.cs" />
     <Compile Include="Intrinsic\Nop.cs" />
     <Compile Include="IRTransformationStage.cs" />
+    <Compile Include="LongOperandTransformationStage.cs" />
     <Compile Include="MachineCodeEmitter.cs" />
     <Compile Include="Instructions\Adc.cs" />
     <Compile Include="Instructions\Add.cs" />

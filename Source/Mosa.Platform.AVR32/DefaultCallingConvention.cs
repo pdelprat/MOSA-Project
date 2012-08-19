@@ -227,7 +227,6 @@ namespace Mosa.Platform.AVR32
 					case StackTypeCode.F:
 						// TODO:
 						//rop = new RegisterOperand(op.Type, SSE2Register.XMM0);
-						rop = null;
 						break;
 
 					case StackTypeCode.Int64:

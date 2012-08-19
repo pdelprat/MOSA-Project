@@ -532,7 +532,7 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IIRVisitor.Store(Context context)
 		{
-			Operand destination = context.Result;
+			Operand destination = context.Operand1;
 			Operand offset = context.Operand2;
 			Operand value = context.Operand3;
 

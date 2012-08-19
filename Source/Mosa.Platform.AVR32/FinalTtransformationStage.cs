@@ -10,7 +10,6 @@
 using System.Diagnostics;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.Framework.Platform;
@@ -37,17 +36,15 @@ namespace Mosa.Platform.AVR32
 				{
 					if (ctx.Instruction != null)
 					{
-						if (!ctx.Ignore && ctx.Instruction is Instructions.IAVR32Instruction)
-						{
-							if (ctx.Instruction is Instructions.MovInstruction && IsConstantOperand(ctx.Operand1))
+							if (ctx.Instruction is Instructions.Mov && ctx.Operand1.IsConstant)
 							{
 								int value;
-								if (!IsConstantBetween(ctx.Operand1 as ConstantOperand, -1048576, 1048575, out value))
+								if (!IsConstantBetween(ctx.Operand1, -1048576, 1048575, out value))
 								{
 									this.HandleSplitMov(ctx);
 								}
 							}
-						}
+						
 					}
 				}
 			}
@@ -55,13 +52,8 @@ namespace Mosa.Platform.AVR32
 
 		#endregion // IMethodCompilerStage Members
 
-		private bool IsConstantOperand(Operand op)
-		{
-			return op is ConstantOperand;
-		}
-
 		// TODO: this is dupplicate method from BaseInstruction 
-		private bool IsConstantBetween(ConstantOperand op, int lo, int hi, out int value)
+		private bool IsConstantBetween(Operand op, int lo, int hi, out int value)
 		{
 			value = 0;
 			switch (op.Type.Type)
@@ -110,8 +102,8 @@ namespace Mosa.Platform.AVR32
 			Operand opL, opH;
 
 			SplitFromConstantOperand(context.Operand1, out opL, out opH);
-			context.SetInstruction(Instruction.MovInstruction, context.Result, opL);
-			context.AppendInstruction(Instruction.OrhInstruction, context.Result, opH);
+			context.SetInstruction(AVR32.Mov, context.Result, opL);
+			context.AppendInstruction(AVR32.Orh, context.Result, opH);
 		}
 
 		private static void SplitFromConstantOperand(Operand operand, out Operand operandLow, out Operand operandHigh)
@@ -119,19 +111,17 @@ namespace Mosa.Platform.AVR32
 			SigType HighType = (operand.Type.Type == CilElementType.I8) ? BuiltInSigType.Int32 : BuiltInSigType.UInt32;
 			SigType U4 = BuiltInSigType.UInt32;
 
-			ConstantOperand constantOperand = operand as ConstantOperand;
-
 			if (HighType.Type == CilElementType.I4)
 			{
-				long value = Convert.ToInt64(constantOperand.Value);
-				operandLow = new ConstantOperand(U4, (uint)(value & 0xFFFF));
-				operandHigh = new ConstantOperand(HighType, (int)(value >> 16));
+				long value = Convert.ToInt64(operand.Value);
+                operandLow = Operand.CreateConstant(BuiltInSigType.UInt32, (uint)(value & 0xFFFF));
+                operandHigh = Operand.CreateConstant(BuiltInSigType.Int32, (int)(value >> 16));
 			}
 			else
 			{
-				uint value = Convert.ToUInt32(constantOperand.Value);
-				operandLow = new ConstantOperand(U4, (uint)(value & 0xFFFF));
-				operandHigh = new ConstantOperand(HighType, (uint)(value >> 16));
+				uint value = Convert.ToUInt32(operand.Value);
+                operandLow = Operand.CreateConstant(BuiltInSigType.UInt32, (uint)(value & 0xFFFF));
+                operandHigh = Operand.CreateConstant(BuiltInSigType.UInt32, (uint)(value >> 16));
 			}
 		}
 

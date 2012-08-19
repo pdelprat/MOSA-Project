@@ -14,12 +14,12 @@
 using System;
 using System.Diagnostics;
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using CIL = Mosa.Compiler.Framework.CIL;
 using IR = Mosa.Compiler.Framework.IR;
 using Mosa.Compiler.Framework.Platform;
+using Mosa.Compiler.Framework.IR;
 
 namespace Mosa.Platform.AVR32
 {
@@ -30,7 +30,7 @@ namespace Mosa.Platform.AVR32
     /// This stage translates all 64-bit operations to appropriate 32-bit operations on
     /// architectures without appropriate 64-bit integral operations.
     /// </remarks>
-    public sealed class LongOperandTransformationStage : BaseTransformationStage, IR.IIRVisitor, IPlatformStage, IPipelineStage
+    public sealed class LongOperandTransformationStage : BaseTransformationStage, IIRVisitor, IPlatformStage
     {
 
         #region Utility Methods
@@ -47,59 +47,57 @@ namespace Mosa.Platform.AVR32
             if (operand.Type.Type != CilElementType.I8 && operand.Type.Type != CilElementType.U8)
             {
                 operandLow = operand;
-                operandHigh = new ConstantOperand(BuiltInSigType.Int32, (int)0);
+                operandHigh = Operand.CreateConstant(BuiltInSigType.Int32, (int)0);
                 return;
             }
 
-            Debug.Assert(operand is MemoryOperand || operand is ConstantOperand, @"Long operand not memory or constant.");
+            Debug.Assert(operand.IsMemoryAddress || operand.IsConstant, @"Long operand not memory or constant.");
 
-            if (operand is ConstantOperand)
+            if (operand.IsConstant)
+            {
                 SplitFromConstantOperand(operand, out operandLow, out operandHigh);
+            }
             else
+            {
                 SplitFromNonConstantOperand(operand, out operandLow, out operandHigh);
+            }
         }
 
         private static void SplitFromConstantOperand(Operand operand, out Operand operandLow, out Operand operandHigh)
         {
             SigType HighType = (operand.Type.Type == CilElementType.I8) ? BuiltInSigType.Int32 : BuiltInSigType.UInt32;
-            SigType U4 = BuiltInSigType.UInt32;
-
-            ConstantOperand constantOperand = operand as ConstantOperand;
 
             if (HighType.Type == CilElementType.I4)
             {
-                long value = (long)constantOperand.Value;
-                operandLow = new ConstantOperand(U4, (uint)(value & 0xFFFFFFFF));
-                operandHigh = new ConstantOperand(HighType, (int)(value >> 32));
+                long value = operand.ValueAsLongInteger;
+                operandLow = Operand.CreateConstant(BuiltInSigType.UInt32, (uint)(value & 0xFFFFFFFF));
+                operandHigh = Operand.CreateConstant(HighType, (int)(value >> 32));
             }
             else
             {
-                ulong value = (ulong)constantOperand.Value;
-                operandLow = new ConstantOperand(U4, (uint)(value & 0xFFFFFFFF));
-                operandHigh = new ConstantOperand(HighType, (uint)(value >> 32));
+                ulong value = (ulong)operand.ValueAsLongInteger; ;
+                operandLow = Operand.CreateConstant(BuiltInSigType.UInt32, (uint)(value & 0xFFFFFFFF));
+                operandHigh = Operand.CreateConstant(HighType, (uint)(value >> 32));
             }
         }
 
         private static void SplitFromNonConstantOperand(Operand operand, out Operand operandLow, out Operand operandHigh)
         {
             SigType HighType = (operand.Type.Type == CilElementType.I8) ? BuiltInSigType.Int32 : BuiltInSigType.UInt32;
-            SigType U4 = BuiltInSigType.UInt32;
 
             // No, could be a member or a plain memory operand
-            MemberOperand memberOperand = operand as MemberOperand;
-            if (memberOperand != null)
+            if (operand.IsRuntimeMember)
             {
                 // We need to keep the member reference, otherwise the linker can't fixup
                 // the member address.
-                operandLow = new MemberOperand(memberOperand.Member, U4, memberOperand.Offset);
-                operandHigh = new MemberOperand(memberOperand.Member, HighType, new IntPtr(memberOperand.Offset.ToInt64() + 4));
+                operandLow = Operand.CreateRuntimeMember(BuiltInSigType.UInt32, operand.RuntimeMember, operand.Offset);
+                operandHigh = Operand.CreateRuntimeMember(HighType, operand.RuntimeMember, new IntPtr(operand.Offset.ToInt64() + 4));
             }
             else
             {
                 // Plain memory, we can handle it here
-                MemoryOperand memoryOperand = (MemoryOperand)operand;
-                operandLow = new MemoryOperand(U4, memoryOperand.Base, memoryOperand.Offset);
-                operandHigh = new MemoryOperand(HighType, memoryOperand.Base, new IntPtr(memoryOperand.Offset.ToInt64() + 4));
+                operandLow = Operand.CreateMemoryAddress(BuiltInSigType.UInt32, operand.Base, operand.Offset);
+                operandHigh = Operand.CreateMemoryAddress(HighType, operand.Base, new IntPtr(operand.Offset.ToInt64() + 4));
             }
         }
 
@@ -123,20 +121,20 @@ namespace Mosa.Platform.AVR32
             // This only works for memory operands (can't store I8/U8 in a register.)
             // This fails for constant operands right now, which need to be extracted into memory
             // with a literal/literal operand first - TODO
-            RegisterOperand r8H = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-            RegisterOperand r8L = new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
+            Operand r8H = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+            Operand r8L = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
 
             Operand op1H, op1L, op2H, op2L, resH, resL;
             SplitLongOperand(context.Operand1, out op1L, out op1H);
             SplitLongOperand(context.Operand2, out op2L, out op2H);
             SplitLongOperand(context.Result, out resL, out resH);
 
-            context.SetInstruction(Instruction.MovInstruction, r8L, op1L);
-            context.AppendInstruction(Instruction.AddInstruction, r8L, op2L);
-            context.AppendInstruction(Instruction.MovInstruction, resL, r8L);
-            context.AppendInstruction(Instruction.MovInstruction, r8H, op1H);
-            context.AppendInstruction(Instruction.AdcInstruction, r8H, op2H);
-            context.AppendInstruction(Instruction.MovInstruction, resH, r8H);
+            context.SetInstruction(AVR32.Mov, r8L, op1L);
+            context.AppendInstruction(AVR32.Add, r8L, op2L);
+            context.AppendInstruction(AVR32.Mov, resL, r8L);
+            context.AppendInstruction(AVR32.Mov, r8H, op1H);
+            context.AppendInstruction(AVR32.Adc, r8H, op2H);
+            context.AppendInstruction(AVR32.Mov, resH, r8H);
         }
 
         /// <summary>
@@ -159,24 +157,24 @@ namespace Mosa.Platform.AVR32
             // This only works for memory operands (can't store I8/U8 in a register.)
             // This fails for constant operands right now, which need to be extracted into memory
             // with a literal/literal operand first - TODO
-            RegisterOperand r8H = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
-            RegisterOperand r8L = new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
-            RegisterOperand r9H = new RegisterOperand(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
-            RegisterOperand r9L = new RegisterOperand(BuiltInSigType.UInt32, GeneralPurposeRegister.R9);
+            Operand r8H = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+            Operand r8L = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
+            Operand r9H = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
+            Operand r9L = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R9);
 
             Operand op1L, op1H, op2L, op2H, resL, resH;
             SplitLongOperand(context.Operand1, out op1L, out op1H);
             SplitLongOperand(context.Operand2, out op2L, out op2H);
             SplitLongOperand(context.Result, out resL, out resH);
 
-            context.SetInstruction(Instruction.MovInstruction, r8L, op1L);
-            context.AppendInstruction(Instruction.MovInstruction, r9L, op2L); 
-            context.AppendInstruction(Instruction.SubInstruction, r8L, r9L);
-            context.AppendInstruction(Instruction.StInstruction, resL, r8L);
-            context.AppendInstruction(Instruction.MovInstruction, r8H, op1H);
-            context.AppendInstruction(Instruction.MovInstruction, r9H, op2H);
-            context.AppendInstruction(Instruction.SubInstruction, r8H, r9H); // Need to check
-            context.AppendInstruction(Instruction.StInstruction, resH, r8H);
+            context.SetInstruction(AVR32.Mov, r8L, op1L);
+            context.AppendInstruction(AVR32.Mov, r9L, op2L);
+            context.AppendInstruction(AVR32.Sub, r8L, r9L);
+            context.AppendInstruction(AVR32.St, resL, r8L);
+            context.AppendInstruction(AVR32.Mov, r8H, op1H);
+            context.AppendInstruction(AVR32.Mov, r9H, op2H);
+            context.AppendInstruction(AVR32.Sub, r8H, r9H); // Need to check
+            context.AppendInstruction(AVR32.St, resH, r8H);
         }
 
         /// <summary>
@@ -1194,12 +1192,12 @@ namespace Mosa.Platform.AVR32
         /// <param name="context">The context.</param>
         private void ExpandNot(Context context)
         {
-            Operand op0H, op1H, op0L, op1L;
-            SplitLongOperand(context.Result, out op0L, out op0H);
-            SplitLongOperand(context.Operand1, out op1L, out op1H);
+            //Operand op0H, op1H, op0L, op1L;
+            //SplitLongOperand(context.Result, out op0L, out op0H);
+            //SplitLongOperand(context.Operand1, out op1L, out op1H);
 
-            context.SetInstruction(IR.Instruction.LogicalNotInstruction, op0H, op1H);
-            context.AppendInstruction(IR.Instruction.LogicalNotInstruction, op0L, op1L);
+            //context.SetInstruction(AVR32.l.LogicalNotInstruction, op0H, op1H);
+            //context.AppendInstruction(IR.Instruction.LogicalNotInstruction, op0L, op1L);
         }
 
         /// <summary>
@@ -1215,15 +1213,15 @@ namespace Mosa.Platform.AVR32
 
             if (context.Result.StackType != StackTypeCode.Int64)
             {
-                context.AppendInstruction(Instruction.MovInstruction, op0L, op1L);
-                context.AppendInstruction(Instruction.AndInstruction, op0L, op2L);
+                context.AppendInstruction(AVR32.Mov, op0L, op1L);
+                context.AppendInstruction(AVR32.And, op0L, op2L);
             }
             else
             {
-                context.SetInstruction(Instruction.MovInstruction, op0H, op1H);
-                context.AppendInstruction(Instruction.MovInstruction, op0L, op1L);
-                context.AppendInstruction(Instruction.AndInstruction, op0H, op2H);
-                context.AppendInstruction(Instruction.AndInstruction, op0L, op2L);
+                context.SetInstruction(AVR32.Mov, op0H, op1H);
+                context.AppendInstruction(AVR32.Mov, op0L, op1L);
+                context.AppendInstruction(AVR32.And, op0H, op2H);
+                context.AppendInstruction(AVR32.And, op0L, op2L);
             }
         }
 
@@ -1238,10 +1236,10 @@ namespace Mosa.Platform.AVR32
             SplitLongOperand(context.Operand1, out op1L, out op1H);
             SplitLongOperand(context.Operand2, out op2L, out op2H);
 
-            context.SetInstruction(Instruction.MovInstruction, op0H, op1H);
-            context.AppendInstruction(Instruction.MovInstruction, op0L, op1L);
-            context.AppendInstruction(Instruction.OrInstruction, op0H, op2H);
-            context.AppendInstruction(Instruction.OrInstruction, op0L, op2L);
+            context.SetInstruction(AVR32.Mov, op0H, op1H);
+            context.AppendInstruction(AVR32.Mov, op0L, op1L);
+            context.AppendInstruction(AVR32.Or, op0H, op2H);
+            context.AppendInstruction(AVR32.Or, op0L, op2L);
         }
 
         /// <summary>
@@ -1255,10 +1253,10 @@ namespace Mosa.Platform.AVR32
             SplitLongOperand(context.Operand1, out op1L, out op1H);
             SplitLongOperand(context.Operand2, out op2L, out op2H);
 
-            context.SetInstruction(Instruction.MovInstruction, op0H, op1H);
-            context.AppendInstruction(Instruction.MovInstruction, op0L, op1L);
-            context.AppendInstruction(Instruction.EorInstruction, op0H, op2H);
-            context.AppendInstruction(Instruction.EorInstruction, op0L, op2L);
+            context.SetInstruction(AVR32.Mov, op0H, op1H);
+            context.AppendInstruction(AVR32.Mov, op0L, op1L);
+            context.AppendInstruction(AVR32.Eor, op0H, op2H);
+            context.AppendInstruction(AVR32.Eor, op0L, op2L);
         }
 
         /// <summary>
@@ -1274,13 +1272,13 @@ namespace Mosa.Platform.AVR32
                 SplitLongOperand(context.Result, out op0L, out op0H);
                 SplitLongOperand(context.Operand1, out op1L, out op1H);
 
-                context.SetInstruction(Instruction.MovInstruction, op0L, op1L);
-                context.AppendInstruction(Instruction.MovInstruction, op0H, op1H);
+                context.SetInstruction(AVR32.Mov, op0L, op1L);
+                context.AppendInstruction(AVR32.Mov, op0H, op1H);
             }
             else
             {
                 SplitLongOperand(context.Operand1, out op1L, out op1H);
-                context.SetInstruction(Instruction.MovInstruction, context.Result, op1L);
+                context.SetInstruction(AVR32.Mov, context.Result, op1L);
             }
         }
 
@@ -1290,51 +1288,50 @@ namespace Mosa.Platform.AVR32
         /// <param name="context">The context.</param>
         private void ExpandUnsignedMove(Context context)
         {
-            MemoryOperand op0 = context.Result as MemoryOperand;
+            Operand op0 = context.Result;
             Operand op1 = context.Operand1;
-            Debug.Assert(op0 != null, @"I8 not in a memory operand!");
+            Debug.Assert(op0.IsMemoryAddress, @"I8 not in a memory operand!");
 
-            SigType U4 = BuiltInSigType.UInt32;
             Operand op0L, op0H, op1L, op1H;
             SplitLongOperand(op0, out op0L, out op0H);
             SplitLongOperand(op1, out op1L, out op1H);
-            RegisterOperand r8 = new RegisterOperand(U4, GeneralPurposeRegister.R8);
-            RegisterOperand r9 = new RegisterOperand(U4, GeneralPurposeRegister.R9);
+            Operand r8 = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
+            Operand r9 = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R9);
 
             switch (op1.Type.Type)
             {
                 case CilElementType.Boolean:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, op0L, op1L);
-                    context.AppendInstruction(IR.Instruction.LogicalXorInstruction, op0H, op0H, op0H);
+                    context.SetInstruction(AVR32.Mov, op0L, op1L);
+                    context.AppendInstruction(AVR32.Eor, op0H, op0H, op0H);
                     break;
 
                 case CilElementType.U1:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, r8, op1L);
+                    context.SetInstruction(AVR32.Mov, r8, op1L);
                     // TODO:
                     //context.AppendInstruction(Instruction.CdqInstruction);
-                    context.AppendInstruction(Instruction.MovInstruction, op0L, r8);
-                    context.AppendInstruction(IR.Instruction.LogicalXorInstruction, op0H, op0H, op0H);
+                    context.AppendInstruction(AVR32.Mov, op0L, r8);
+                    context.AppendInstruction(AVR32.Eor, op0H, op0H, op0H);
                     break;
 
                 case CilElementType.U2: goto case CilElementType.U1;
 
                 case CilElementType.I4:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, r8, op1L);
-                    context.AppendInstruction(Instruction.EorInstruction, r9, r9);
-                    context.AppendInstruction(Instruction.MovInstruction, op0L, r8);
-                    context.AppendInstruction(Instruction.MovInstruction, op0H, r9);
+                    context.SetInstruction(AVR32.Mov, r8, op1L);
+                    context.AppendInstruction(AVR32.Eor, r9, r9);
+                    context.AppendInstruction(AVR32.Mov, op0L, r8);
+                    context.AppendInstruction(AVR32.Mov, op0H, r9);
                     break;
                 case CilElementType.U4:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, r8, op1L);
+                    context.SetInstruction(AVR32.Mov, r8, op1L);
                     // TODO:
                     //context.AppendInstruction(Instruction.CdqInstruction);
-                    context.AppendInstruction(Instruction.MovInstruction, op0L, r8);
-                    context.AppendInstruction(Instruction.MovInstruction, op0H, r9);
+                    context.AppendInstruction(AVR32.Mov, op0L, r8);
+                    context.AppendInstruction(AVR32.Mov, op0H, r9);
                     break;
 
                 case CilElementType.U8:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, op0L, op1L);
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, op0H, op1H);
+                    context.SetInstruction(AVR32.Mov, op0L, op1L);
+                    context.SetInstruction(AVR32.Mov, op0H, op1H);
                     break;
 
                 case CilElementType.R4:
@@ -1358,47 +1355,47 @@ namespace Mosa.Platform.AVR32
             Operand op0 = context.Result;
             Operand op1 = context.Operand1;
             Debug.Assert(op0 != null, @"I8 not in a memory operand!");
-            SigType I4 = BuiltInSigType.Int32;
+
             Operand op0L, op0H;
             SplitLongOperand(op0, out op0L, out op0H);
-            RegisterOperand r8 = new RegisterOperand(I4, GeneralPurposeRegister.R8);
-            RegisterOperand r9 = new RegisterOperand(I4, GeneralPurposeRegister.R9);
+            Operand r8 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+            Operand r9 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
 
             switch (op1.Type.Type)
             {
                 case CilElementType.Boolean:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, op0L, op1);
-                    context.AppendInstruction(IR.Instruction.LogicalXorInstruction, op0H, op0H, op0H);
+                    context.SetInstruction(AVR32.Mov, op0L, op1);
+                    context.AppendInstruction(AVR32.Eor, op0H, op0H, op0H);
                     break;
 
                 case CilElementType.I1:
-                    context.SetInstruction(IR.Instruction.SignExtendedMoveInstruction, r8, op1);
+                    context.SetInstruction(AVR32.Mov, r8, op1);
                     //TODO:
                     //context.AppendInstruction(Instruction.CdqInstruction);
-                    context.AppendInstruction(Instruction.MovInstruction, op0L, r8);
-                    context.AppendInstruction(Instruction.MovInstruction, op0H, r9);
+                    context.AppendInstruction(AVR32.Mov, op0L, r8);
+                    context.AppendInstruction(AVR32.Mov, op0H, r9);
                     break;
 
                 case CilElementType.I2: goto case CilElementType.I1;
 
                 case CilElementType.I4:
-                    context.SetInstruction(Instruction.MovInstruction, r8, op1);
+                    context.SetInstruction(AVR32.Mov, r8, op1);
                     // TODO:
                     //context.AppendInstruction(Instruction.CdqInstruction);
-                    context.AppendInstruction(Instruction.MovInstruction, op0L, r8);
-                    context.AppendInstruction(Instruction.MovInstruction, op0H, r9);
+                    context.AppendInstruction(AVR32.Mov, op0L, r8);
+                    context.AppendInstruction(AVR32.Mov, op0H, r9);
                     break;
 
                 case CilElementType.I8:
-                    context.SetInstruction(Instruction.MovInstruction, op0, op1);
+                    context.SetInstruction(AVR32.Mov, op0, op1);
                     break;
 
                 case CilElementType.U1:
-                    context.SetInstruction(IR.Instruction.ZeroExtendedMoveInstruction, r8, op1);
+                    context.SetInstruction(AVR32.Mov, r8, op1);
                     // TODO:
                     //context.AppendInstruction(Instruction.CdqInstruction);
-                    context.AppendInstruction(Instruction.MovInstruction, op0L, r8);
-                    context.AppendInstruction(IR.Instruction.LogicalXorInstruction, op0H, op0H, op0H);
+                    context.AppendInstruction(AVR32.Mov, op0L, r8);
+                    context.AppendInstruction(AVR32.Eor, op0H, op0H, op0H);
                     break;
 
                 case CilElementType.U2: goto case CilElementType.U1;
@@ -1431,19 +1428,18 @@ namespace Mosa.Platform.AVR32
             Operand offsetOperand = context.Operand2;
             Debug.Assert(op0 != null && op1 != null, @"Operands to I8 LoadInstruction are not MemoryOperand.");
 
-            SigType I4 = BuiltInSigType.Int32;
             Operand op0L, op0H;
             SplitLongOperand(op0, out op0L, out op0H);
 
-            RegisterOperand r8 = new RegisterOperand(I4, GeneralPurposeRegister.R8);
-            RegisterOperand r9 = new RegisterOperand(I4, GeneralPurposeRegister.R8);
+            Operand r8 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R8);
+            Operand r9 = Operand.CreateCPURegister(BuiltInSigType.Int32, GeneralPurposeRegister.R9);
 
-            context.SetInstruction(Instruction.MovInstruction, r8, op1);
-            context.AppendInstruction(Instruction.AddInstruction, r8, offsetOperand);
-            context.AppendInstruction(Instruction.MovInstruction, r9, new MemoryOperand(op0L.Type, GeneralPurposeRegister.R8, IntPtr.Zero));
-            context.AppendInstruction(Instruction.MovInstruction, op0L, r9);
-            context.AppendInstruction(Instruction.MovInstruction, r9, new MemoryOperand(op0H.Type, GeneralPurposeRegister.R8, new IntPtr(4)));
-            context.AppendInstruction(Instruction.MovInstruction, op0H, r9);
+            context.SetInstruction(AVR32.Mov, r8, op1);
+            context.AppendInstruction(AVR32.Add, r8, offsetOperand);
+            context.AppendInstruction(AVR32.Mov, r9, Operand.CreateMemoryAddress(op0L.Type, GeneralPurposeRegister.R8, IntPtr.Zero));
+            context.AppendInstruction(AVR32.Mov, op0L, r9);
+            context.AppendInstruction(AVR32.Mov, r9, Operand.CreateMemoryAddress(op0H.Type, GeneralPurposeRegister.R8, new IntPtr(4)));
+            context.AppendInstruction(AVR32.Mov, op0H, r9);
         }
 
         /// <summary>
@@ -1452,27 +1448,26 @@ namespace Mosa.Platform.AVR32
         /// <param name="context">The context.</param>
         private void ExpandStore(Context context)
         {
-            MemoryOperand op0 = context.Result as MemoryOperand;
-            Operand offsetOperand = context.Operand1;
-            MemoryOperand op2 = context.Operand2 as MemoryOperand;
-            Debug.Assert(op0 != null && op2 != null, @"Operands to I8 LoadInstruction are not MemoryOperand.");
+            Debug.Assert(context.Operand1.IsMemoryAddress && context.Operand3.IsMemoryAddress, @"Operands to I8 LoadInstruction are not MemoryOperand.");
 
-            SigType I4 = BuiltInSigType.Int32;
-            SigType U4 = BuiltInSigType.UInt32;
+            Operand op0 = context.Operand1;
+            Operand op2 = context.Operand3;
+            Operand offsetOperand = context.Operand2;
+
             Operand op1L, op1H;
             SplitLongOperand(op2, out op1L, out op1H);
-            RegisterOperand r8 = new RegisterOperand(I4, GeneralPurposeRegister.R8);
-            RegisterOperand r9 = new RegisterOperand(I4, GeneralPurposeRegister.R9);
+            Operand r8 = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R8);
+            Operand r9 = Operand.CreateCPURegister(BuiltInSigType.UInt32, GeneralPurposeRegister.R9);
 
-            context.SetInstruction(Instruction.MovInstruction, r9, op0);
+            context.SetInstruction(AVR32.Mov, r9, op0);
 
             // Fortunately in 32-bit mode, we can't have 64-bit offsets, so this plain add should suffice.
-            context.AppendInstruction(Instruction.AddInstruction, r9, offsetOperand);
+            context.AppendInstruction(AVR32.Add, r9, offsetOperand);
 
-            context.AppendInstruction(Instruction.MovInstruction, r8, op1L);
-            context.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(U4, GeneralPurposeRegister.R9, IntPtr.Zero), r8);
-            context.AppendInstruction(Instruction.MovInstruction, r8, op1H);
-            context.AppendInstruction(Instruction.MovInstruction, new MemoryOperand(I4, GeneralPurposeRegister.R9, new IntPtr(4)), r8);
+            context.AppendInstruction(AVR32.Mov, r8, op1L);
+            context.AppendInstruction(AVR32.Mov, Operand.CreateMemoryAddress(BuiltInSigType.UInt32, GeneralPurposeRegister.R9, IntPtr.Zero), r8);
+            context.AppendInstruction(AVR32.Mov, r8, op1H);
+            context.AppendInstruction(AVR32.Mov, Operand.CreateMemoryAddress(BuiltInSigType.Int32, GeneralPurposeRegister.R9, new IntPtr(4)), r8);
         }
 
         /// <summary>
@@ -1494,119 +1489,33 @@ namespace Mosa.Platform.AVR32
         }
 
         /// <summary>
-        /// Expands the unary branch instruction for 64-bits.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        private void ExpandUnaryBranch(Context context)
-        {
-            Debug.Assert(context.Branch.Targets.Length == 2);
-
-            int target = context.Branch.Targets[0];
-
-            Operand op1H, op1L, op2H, op2L;
-            Operand zero = new ConstantOperand(BuiltInSigType.Int32, (int)0);
-            SplitLongOperand(context.Operand1, out op1L, out op1H);
-            SplitLongOperand(zero, out op2L, out op2H);
-            IR.ConditionCode code;
-
-            switch (((context.Instruction) as CIL.ICILInstruction).OpCode)
-            {
-                // Signed
-                case CIL.OpCode.Brtrue: code = IR.ConditionCode.NotEqual; break;
-                case CIL.OpCode.Brfalse: code = IR.ConditionCode.Equal; break;
-                case CIL.OpCode.Beq_s: code = IR.ConditionCode.Equal; break;
-                case CIL.OpCode.Bge_s: code = IR.ConditionCode.GreaterOrEqual; break;
-                case CIL.OpCode.Bgt_s: code = IR.ConditionCode.GreaterThan; break;
-                case CIL.OpCode.Ble_s: code = IR.ConditionCode.LessOrEqual; break;
-                case CIL.OpCode.Blt_s: code = IR.ConditionCode.LessThan; break;
-
-                // Unsigned
-                case CIL.OpCode.Bne_un_s: code = IR.ConditionCode.NotEqual; break;
-                case CIL.OpCode.Bge_un_s: code = IR.ConditionCode.UnsignedGreaterOrEqual; break;
-                case CIL.OpCode.Bgt_un_s: code = IR.ConditionCode.UnsignedGreaterThan; break;
-                case CIL.OpCode.Ble_un_s: code = IR.ConditionCode.UnsignedLessOrEqual; break;
-                case CIL.OpCode.Blt_un_s: code = IR.ConditionCode.UnsignedLessThan; break;
-
-                // Long form signed
-                case CIL.OpCode.Beq: goto case CIL.OpCode.Beq_s;
-                case CIL.OpCode.Bge: goto case CIL.OpCode.Bge_s;
-                case CIL.OpCode.Bgt: goto case CIL.OpCode.Bgt_s;
-                case CIL.OpCode.Ble: goto case CIL.OpCode.Ble_s;
-                case CIL.OpCode.Blt: goto case CIL.OpCode.Blt_s;
-
-                // Long form unsigned
-                case CIL.OpCode.Bne_un: goto case CIL.OpCode.Bne_un_s;
-                case CIL.OpCode.Bge_un: goto case CIL.OpCode.Bge_un_s;
-                case CIL.OpCode.Bgt_un: goto case CIL.OpCode.Bgt_un_s;
-                case CIL.OpCode.Ble_un: goto case CIL.OpCode.Ble_un_s;
-                case CIL.OpCode.Blt_un: goto case CIL.OpCode.Blt_un_s;
-                default: throw new NotImplementedException();
-            }
-
-            //UNUSED:
-            //IR.ConditionCode conditionHigh = GetHighCondition(code);
-
-            Context[] newBlocks = CreateEmptyBlockContexts(context.Label, 3);
-            Context nextBlock = SplitContext(context, false);
-
-            context.SetInstruction(Instruction.JmpInstruction, newBlocks[0].BasicBlock);
-            LinkBlocks(context, newBlocks[0]);
-            // Compare high dwords
-            // TODO:
-            //newBlocks[0].AppendInstruction(Instruction.DirectCompareInstruction, op1H, op2H);
-            // Branch if check already gave results
-            newBlocks[0].AppendInstruction(Instruction.BranchInstruction, IR.ConditionCode.Equal, newBlocks[2].BasicBlock);
-            newBlocks[0].AppendInstruction(Instruction.JmpInstruction, newBlocks[1].BasicBlock);
-            LinkBlocks(newBlocks[0], newBlocks[1], newBlocks[2]);
-
-            newBlocks[1].AppendInstruction(Instruction.BranchInstruction, code, FindBlock(target));
-            //            newBlocks[1].SetBranch(target);
-            newBlocks[1].AppendInstruction(Instruction.JmpInstruction);
-            newBlocks[1].SetBranch(nextBlock.BasicBlock);
-            LinkBlocks(newBlocks[1], FindBlock(target));
-            LinkBlocks(newBlocks[1], nextBlock);
-
-            // Compare low dwords
-            // TODO:
-            //newBlocks[2].SetInstruction(Instruction.DirectCompareInstruction, op1L, op2L);
-            // Set the unsigned result...
-            newBlocks[2].AppendInstruction(Instruction.BranchInstruction, code, FindBlock(target));
-            //            newBlocks[1].SetBranch(target);
-            newBlocks[2].AppendInstruction(Instruction.JmpInstruction);
-            newBlocks[2].SetBranch(nextBlock.BasicBlock);
-            LinkBlocks(newBlocks[2], FindBlock(target));
-            LinkBlocks(newBlocks[2], nextBlock);
-        }
-
-        /// <summary>
         /// Expands the binary branch instruction for 64-bits.
         /// </summary>
         /// <param name="context">The context.</param>
         private void ExpandBinaryBranch(Context context)
         {
-            Debug.Assert(context.Branch.Targets.Length == 1);
+            Debug.Assert(context.BranchTargets.Length == 1);
 
-            BasicBlock target = FindBlock(context.Branch.Targets[0]);
+            BasicBlock target = basicBlocks.GetByLabel(context.BranchTargets[0]);
 
-            //SigType I4 = BuiltInSigType.Int32;
             Operand op1L, op1H, op2L, op2H;
             SplitLongOperand(context.Operand1, out op1L, out op1H);
             SplitLongOperand(context.Operand2, out op2L, out op2H);
 
             Context[] newBlocks = CreateEmptyBlockContexts(context.Label, 2);
-            IR.ConditionCode conditionCode = context.ConditionCode;
+            ConditionCode conditionCode = context.ConditionCode;
             Context nextBlock = SplitContext(context, false);
 
             // Compare high dwords
             // TODO:
             //context.SetInstruction(Instruction.CmpInstruction, op1H, op2H);
-            context.AppendInstruction(Instruction.BranchInstruction, IR.ConditionCode.Equal, newBlocks[1].BasicBlock);
-            context.AppendInstruction(Instruction.JmpInstruction, newBlocks[0].BasicBlock);
+            context.AppendInstruction(AVR32.Branch, IR.ConditionCode.Equal, newBlocks[1].BasicBlock);
+            context.AppendInstruction(AVR32.Jmp, newBlocks[0].BasicBlock);
             LinkBlocks(context, newBlocks[0], newBlocks[1]);
 
             // Branch if check already gave results
-            newBlocks[0].SetInstruction(Instruction.BranchInstruction, conditionCode, target);
-            newBlocks[0].AppendInstruction(Instruction.JmpInstruction, nextBlock.BasicBlock);
+            newBlocks[0].SetInstruction(AVR32.Branch, conditionCode, target);
+            newBlocks[0].AppendInstruction(AVR32.Jmp, nextBlock.BasicBlock);
             LinkBlocks(newBlocks[0], target);
             LinkBlocks(newBlocks[0], nextBlock);
 
@@ -1614,8 +1523,8 @@ namespace Mosa.Platform.AVR32
             // TODO:
             //newBlocks[1].SetInstruction(Instruction.CmpInstruction, op1L, op2L);
             // Set the unsigned result...
-            newBlocks[1].AppendInstruction(Instruction.BranchInstruction, GetUnsignedConditionCode(conditionCode), target);
-            newBlocks[1].AppendInstruction(Instruction.JmpInstruction, nextBlock.BasicBlock);
+            newBlocks[1].AppendInstruction(AVR32.Branch, GetUnsignedConditionCode(conditionCode), target);
+            newBlocks[1].AppendInstruction(AVR32.Jmp, nextBlock.BasicBlock);
             LinkBlocks(newBlocks[1], target);
             LinkBlocks(newBlocks[1], nextBlock);
         }
@@ -1650,7 +1559,7 @@ namespace Mosa.Platform.AVR32
             Operand op2 = context.Operand2;
 
             Debug.Assert(op1 != null && op2 != null, @"IntegerCompareInstruction operand not memory!");
-            Debug.Assert(op0 is MemoryOperand || op0 is RegisterOperand, @"IntegerCompareInstruction result not memory and not register!");
+            Debug.Assert(op0.IsMemoryAddress || op0.IsRegister, @"IntegerCompareInstruction result not memory and not register!");
 
             SigType I4 = BuiltInSigType.Int32;
             //UNUSED:
@@ -1667,33 +1576,33 @@ namespace Mosa.Platform.AVR32
             // Compare high dwords
             // TODO:
             //context.SetInstruction(Instruction.CmpInstruction, op1H, op2H);
-            context.AppendInstruction(Instruction.BranchInstruction, IR.ConditionCode.Equal, newBlocks[1].BasicBlock);
-            context.AppendInstruction(Instruction.JmpInstruction, newBlocks[0].BasicBlock);
+            context.AppendInstruction(AVR32.Branch, IR.ConditionCode.Equal, newBlocks[1].BasicBlock);
+            context.AppendInstruction(AVR32.Jmp, newBlocks[0].BasicBlock);
             LinkBlocks(context, newBlocks[0], newBlocks[1]);
 
             // Branch if check already gave results
-            newBlocks[0].SetInstruction(Instruction.BranchInstruction, conditionCode, newBlocks[2].BasicBlock);
-            newBlocks[0].AppendInstruction(Instruction.JmpInstruction, newBlocks[3].BasicBlock);
+            newBlocks[0].SetInstruction(AVR32.Branch, conditionCode, newBlocks[2].BasicBlock);
+            newBlocks[0].AppendInstruction(AVR32.Jmp, newBlocks[3].BasicBlock);
             LinkBlocks(newBlocks[0], newBlocks[2], newBlocks[3]);
 
             // Compare low dwords
             // TODO:
             //newBlocks[1].SetInstruction(Instruction.CmpInstruction, op1L, op2L);
             // Set the unsigned result...
-            newBlocks[1].AppendInstruction(Instruction.BranchInstruction, GetUnsignedConditionCode(conditionCode), newBlocks[2].BasicBlock);
-            newBlocks[1].AppendInstruction(Instruction.JmpInstruction, newBlocks[3].BasicBlock);
+            newBlocks[1].AppendInstruction(AVR32.Branch, GetUnsignedConditionCode(conditionCode), newBlocks[2].BasicBlock);
+            newBlocks[1].AppendInstruction(AVR32.Jmp, newBlocks[3].BasicBlock);
             LinkBlocks(newBlocks[1], newBlocks[2], newBlocks[3]);
 
             // Success
             // TODO:
             //newBlocks[2].SetInstruction(Instruction.MovsxInstruction, op0, new ConstantOperand(I4, 1));
-            newBlocks[2].AppendInstruction(Instruction.JmpInstruction, nextBlock.BasicBlock);
+            newBlocks[2].AppendInstruction(AVR32.Jmp, nextBlock.BasicBlock);
             LinkBlocks(newBlocks[2], nextBlock);
 
             // Failed
             // TODO:
             //newBlocks[3].SetInstruction(Instruction.MovsxInstruction, op0, new ConstantOperand(I4, 0));
-            newBlocks[3].AppendInstruction(Instruction.JmpInstruction, nextBlock.BasicBlock);
+            newBlocks[3].AppendInstruction(AVR32.Jmp, nextBlock.BasicBlock);
             LinkBlocks(newBlocks[3], nextBlock);
         }
 
@@ -1738,18 +1647,10 @@ namespace Mosa.Platform.AVR32
         #region IIRVisitor
 
         /// <summary>
-        /// Visitation function for BreakInstruction.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        void IR.IIRVisitor.BreakInstruction(Context context)
-        {
-        }
-
-        /// <summary>
         /// Arithmetics the shift right instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ArithmeticShiftRightInstruction(Context context)
+        void IIRVisitor.ArithmeticShiftRight(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1761,7 +1662,7 @@ namespace Mosa.Platform.AVR32
         /// Integers the compare instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.IntegerCompareBranchInstruction(Context context)
+        void IIRVisitor.IntegerCompareBranch(Context context)
         {
             if (IsInt64(context.Operand1) || IsInt64(context.Operand2))
             {
@@ -1773,7 +1674,7 @@ namespace Mosa.Platform.AVR32
         /// Integers the compare instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.IntegerCompareInstruction(Context context)
+        void IIRVisitor.IntegerCompare(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1785,7 +1686,7 @@ namespace Mosa.Platform.AVR32
         /// Loads the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.LoadInstruction(Context context)
+        void IIRVisitor.Load(Context context)
         {
             if (IsInt64(context.Operand1) || IsInt64(context.Result))
             {
@@ -1794,10 +1695,28 @@ namespace Mosa.Platform.AVR32
         }
 
         /// <summary>
+        /// Visitation function for Load Zero Extended.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.LoadZeroExtended(Context context)
+        {
+            // TODO
+        }
+
+        /// <summary>
+        /// Visitation function for Load Sign Extended.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.LoadSignExtended(Context context)
+        {
+            // TODO
+        }
+
+        /// <summary>
         /// Logicals the and instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.LogicalAndInstruction(Context context)
+        void IIRVisitor.LogicalAnd(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1809,7 +1728,7 @@ namespace Mosa.Platform.AVR32
         /// Logicals the or instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.LogicalOrInstruction(Context context)
+        void IIRVisitor.LogicalOr(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1821,7 +1740,7 @@ namespace Mosa.Platform.AVR32
         /// Logicals the xor instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.LogicalXorInstruction(Context context)
+        void IIRVisitor.LogicalXor(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1833,7 +1752,7 @@ namespace Mosa.Platform.AVR32
         /// Logicals the not instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.LogicalNotInstruction(Context context)
+        void IIRVisitor.LogicalNot(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1845,7 +1764,7 @@ namespace Mosa.Platform.AVR32
         /// Moves the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.MoveInstruction(Context context)
+        void IIRVisitor.Move(Context context)
         {
             // FIXME: Why aren't we doing an SSE2 move for int64?
             if (IsInt64(context.Operand1))
@@ -1858,7 +1777,7 @@ namespace Mosa.Platform.AVR32
         /// Pops the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        //void IR.IIRVisitor.PopInstruction(Context context)
+        //void IIRVisitor.PopInstruction(Context context)
         //{
         //    if (IsInt64(context.Operand1))
         //    {
@@ -1870,7 +1789,7 @@ namespace Mosa.Platform.AVR32
         /// Pushes the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        //void IR.IIRVisitor.PushInstruction(Context context)
+        //void IIRVisitor.PushInstruction(Context context)
         //{
         //    if (IsInt64(context.Operand1))
         //    {
@@ -1882,7 +1801,7 @@ namespace Mosa.Platform.AVR32
         /// Shifts the left instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ShiftLeftInstruction(Context context)
+        void IIRVisitor.ShiftLeft(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1894,7 +1813,7 @@ namespace Mosa.Platform.AVR32
         /// Shifts the right instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ShiftRightInstruction(Context context)
+        void IIRVisitor.ShiftRight(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1906,7 +1825,7 @@ namespace Mosa.Platform.AVR32
         /// Signs the extended move instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.SignExtendedMoveInstruction(Context context)
+        void IIRVisitor.SignExtendedMove(Context context)
         {
             if (IsInt64(context.Operand1) || IsInt64(context.Result))
             {
@@ -1918,7 +1837,7 @@ namespace Mosa.Platform.AVR32
         /// Stores the instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.StoreInstruction(Context context)
+        void IIRVisitor.Store(Context context)
         {
             if (IsInt64(context.Operand2))
             {
@@ -1930,7 +1849,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for DivSInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.DivSInstruction(Context context)
+        void IIRVisitor.DivSigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1938,7 +1857,7 @@ namespace Mosa.Platform.AVR32
             }
         }
 
-        void IR.IIRVisitor.DivUInstruction(Context context)
+        void IIRVisitor.DivUnsigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1950,7 +1869,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for MulSInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.MulSInstruction(Context context)
+        void IIRVisitor.MulSigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1962,7 +1881,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for MulFInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.MulFInstruction(Context context)
+        void IIRVisitor.MulFloat(Context context)
         {
         }
 
@@ -1970,7 +1889,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for MulUInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.MulUInstruction(Context context)
+        void IIRVisitor.MulUnsigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1979,18 +1898,10 @@ namespace Mosa.Platform.AVR32
         }
 
         /// <summary>
-        /// Visitation function for SubFInstruction.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        void IR.IIRVisitor.SubFInstruction(Context context)
-        {
-        }
-
-        /// <summary>
         /// Visitation function for SubSInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.SubSInstruction(Context context)
+        void IIRVisitor.SubSigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -1998,10 +1909,10 @@ namespace Mosa.Platform.AVR32
             }
             else
             {
-                if (context.Operand2 is ConstantOperand && context.Operand1.Type.Type == CilElementType.Char)
+                if (context.Operand2.IsConstant && context.Operand1.Type.Type == CilElementType.Char)
                 {
-                    RegisterOperand r10 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R10);
-                    context.InsertBefore().SetInstruction(Instruction.MovInstruction, r10, context.Operand2);
+                    Operand r10 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R10);
+                    context.InsertBefore().SetInstruction(AVR32.Mov, r10, context.Operand2);
                     context.Operand2 = r10;
                 }
             }
@@ -2011,7 +1922,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for SubUInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.SubUInstruction(Context context)
+        void IIRVisitor.SubUnsigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -2020,18 +1931,10 @@ namespace Mosa.Platform.AVR32
         }
 
         /// <summary>
-        /// Visitation function for RemFInstruction.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        void IR.IIRVisitor.RemFInstruction(Context context)
-        {
-        }
-
-        /// <summary>
         /// Visitation function for RemSInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.RemSInstruction(Context context)
+        void IIRVisitor.RemSigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -2043,7 +1946,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for RemUInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.RemUInstruction(Context context)
+        void IIRVisitor.RemUnsigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -2052,18 +1955,10 @@ namespace Mosa.Platform.AVR32
         }
 
         /// <summary>
-        /// Visitation function for SwitchInstruction.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        void IR.IIRVisitor.SwitchInstruction(Context context)
-        {
-        }
-
-        /// <summary>
         /// Zeroes the extended move instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ZeroExtendedMoveInstruction(Context context)
+        void IIRVisitor.ZeroExtendedMove(Context context)
         {
             if (IsInt64(context.Result))
             {
@@ -2075,7 +1970,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for AddSInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.AddSInstruction(Context context)
+        void IIRVisitor.AddSigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -2087,7 +1982,7 @@ namespace Mosa.Platform.AVR32
         /// Visitation function for AddUInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.AddUInstruction(Context context)
+        void IIRVisitor.AddUnsigned(Context context)
         {
             if (IsInt64(context.Operand1))
             {
@@ -2095,103 +1990,128 @@ namespace Mosa.Platform.AVR32
             }
         }
 
-        /// <summary>
-        /// Visitation function for AddFInstruction.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        void IR.IIRVisitor.AddFInstruction(Context context)
-        {
-        }
-
-        /// <summary>
-        /// Visitation function for DivFInstruction.
-        /// </summary>
-        /// <param name="context">The context.</param>
-        void IR.IIRVisitor.DivFInstruction(Context context)
-        {
-        }
-
         #endregion // IIRVisitor
 
         #region IIRVisitor - Unused
 
         /// <summary>
+        /// Visitation function for RemFInstruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.RemFloat(Context context) { }
+
+        /// <summary>
+        /// Visitation function for SubFInstruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.SubFloat(Context context) { }
+
+        /// <summary>
+        /// Visitation function for SwitchInstruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.Switch(Context context) { }
+
+        /// <summary>
+        /// Visitation function for AddFInstruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.AddFloat(Context context) { }
+
+        /// <summary>
+        /// Visitation function for DivFInstruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.DivFloat(Context context) { }
+        /// <summary>
+        /// Visitation function for BreakInstruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.Break(Context context) { }
+
+        /// <summary>
         /// Visitation function for AddressOfInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.AddressOfInstruction(Context context) { }
+        void IIRVisitor.AddressOf(Context context) { }
 
         /// <summary>
         /// Visitation function for CallInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.CallInstruction(Context context) { }
+        void IIRVisitor.Call(Context context) { }
+
+        /// <summary>
+        /// Visitation function for intrinsic the method call.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        void IIRVisitor.IntrinsicMethodCall(Context context) { }
 
         /// <summary>
         /// Visitation function for EpilogueInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.EpilogueInstruction(Context context) { }
+        void IIRVisitor.Epilogue(Context context) { }
 
         /// <summary>
         /// Visitation function for FloatingPointCompareInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.FloatingPointCompareInstruction(Context context) { }
+        void IIRVisitor.FloatCompare(Context context) { }
 
         /// <summary>
         /// Visitation function for FloatingPointToIntegerConversionInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.FloatingPointToIntegerConversionInstruction(Context context) { }
+        void IIRVisitor.FloatToIntegerConversion(Context context) { }
 
         /// <summary>
         /// Visitation function for IntegerToFloatingPointConversionInstruction instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.IntegerToFloatingPointConversionInstruction(Context context) { }
+        void IIRVisitor.IntegerToFloatConversion(Context context) { }
 
         /// <summary>
-        /// Visitation function for JmpInstruction"/&gt; instruction.
+        /// Visitation function for JmpInstruction instruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.JmpInstruction(Context context) { }
+        void IIRVisitor.Jmp(Context context) { }
 
         /// <summary>
         /// Visitation function for PhiInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.PhiInstruction(Context context) { }
+        void IIRVisitor.Phi(Context context) { }
 
         /// <summary>
         /// Visitation function for PrologueInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.PrologueInstruction(Context context) { }
+        void IIRVisitor.Prologue(Context context) { }
 
         /// <summary>
         /// Visitation function for ReturnInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ReturnInstruction(Context context) { }
+        void IIRVisitor.Return(Context context) { }
 
         /// <summary>
         /// Visitation function for NopInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.NopInstruction(Context context) { }
+        void IIRVisitor.Nop(Context context) { }
 
         /// <summary>
         /// Visitation function for ThrowInstruction.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ThrowInstruction(Context context) { }
+        void IIRVisitor.Throw(Context context) { }
 
         /// <summary>
         /// Visitation function for ExceptionPrologueInstruction"/> instructions.
         /// </summary>
         /// <param name="context">The context.</param>
-        void IR.IIRVisitor.ExceptionPrologueInstruction(Context context) { }
+        void IIRVisitor.ExceptionPrologue(Context context) { }
 
         #endregion // IIRVisitor - Unused
 

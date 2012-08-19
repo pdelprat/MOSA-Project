@@ -9,7 +9,6 @@
  */
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using System;
 
 namespace Mosa.Platform.AVR32.Instructions
@@ -31,11 +30,9 @@ namespace Mosa.Platform.AVR32.Instructions
 		/// <param name="emitter">The emitter.</param>
 		protected override void Emit(Context context, MachineCodeEmitter emitter)
 		{
-            if (context.Operand1 is RegisterOperand)
-            {
-                 RegisterOperand operand = context.Operand1 as RegisterOperand;
-
-                 emitter.EmitSingleRegisterInstructions(0x11, (byte)operand.Register.RegisterCode);   
+            if (context.Operand1.IsRegister)
+            {         
+                 emitter.EmitSingleRegisterInstructions(0x11, (byte)context.Operand1.Register.RegisterCode);   
             }
             else
                 throw new Exception("Not supported combination of operands");

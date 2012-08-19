@@ -75,6 +75,7 @@ namespace Mosa.Platform.AVR32
 		private Architecture(ArchitectureFeatureFlags architectureFeatures)
 		{
 			this.architectureFeatures = architectureFeatures;
+            this.CallingConvention = new DefaultCallingConvention(this);
 		}
 
 		/// <summary>

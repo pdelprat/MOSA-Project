@@ -10,7 +10,6 @@
 using System.Diagnostics;
 
 using Mosa.Compiler.Framework;
-using Mosa.Compiler.Framework.Operands;
 using Mosa.Compiler.Metadata;
 using Mosa.Compiler.Metadata.Signatures;
 using Mosa.Compiler.Framework.Platform;
@@ -36,17 +35,15 @@ namespace Mosa.Platform.AVR32
                 {
                     if (ctx.Instruction != null)
                     {
-                        if (!ctx.Ignore && ctx.Instruction is Instructions.IAVR32Instruction)
+                        if (ctx.Instruction is Instructions.And && IsConstantOperand(ctx.Operand1))
                         {
-                            if (ctx.Instruction is Instructions.AndInstruction && IsConstantOperand(ctx.Operand1))
-                            {
-                                this.HandleSplitAnd(ctx);
-                            }
-                            if (ctx.Instruction is Instructions.AddInstruction && IsConstantOperand(ctx.Operand1))
-                            {
-                                this.HandleSplitAdd(ctx);
-                            }
+                            this.HandleSplitAnd(ctx);
                         }
+                        if (ctx.Instruction is Instructions.Add && IsConstantOperand(ctx.Operand1))
+                        {
+                            this.HandleSplitAdd(ctx);
+                        }
+
                     }
                 }
             }
@@ -56,23 +53,23 @@ namespace Mosa.Platform.AVR32
 
         private bool IsConstantOperand(Operand op)
         {
-            return op is ConstantOperand;
+            return op.IsConstant;
         }
 
         private void HandleSplitAnd(Context context)
         {
-            RegisterOperand r8 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R8);
+            Operand r8 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R8);
 
-            context.SetInstruction(Instruction.MovInstruction, r8, context.Operand1);
-            context.AppendInstruction(Instruction.AndInstruction, context.Result, r8);
+            context.SetInstruction(AVR32.Mov, r8, context.Operand1);
+            context.AppendInstruction(AVR32.And, context.Result, r8);
         }
 
         private void HandleSplitAdd(Context context)
         {
-            RegisterOperand r8 = new RegisterOperand(context.Operand1.Type, GeneralPurposeRegister.R8);
+            Operand r8 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R8);
 
-            context.SetInstruction(Instruction.MovInstruction, r8, context.Operand1);
-            context.AppendInstruction(Instruction.AddInstruction, context.Result, r8);
+            context.SetInstruction(AVR32.Mov, r8, context.Operand1);
+            context.AppendInstruction(AVR32.Add, context.Result, r8);
         }
 
     }
