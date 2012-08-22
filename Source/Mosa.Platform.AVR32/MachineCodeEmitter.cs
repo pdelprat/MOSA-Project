@@ -17,13 +17,16 @@ namespace Mosa.Platform.AVR32
 	/// <summary>
 	/// An AVR32 machine code emitter.
 	/// </summary>
-	public sealed class MachineCodeEmitter : BaseCodeEmitter, ICodeEmitter, IDisposable
+	public sealed class MachineCodeEmitter : BaseCodeEmitter, IDisposable
 	{
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MachineCodeEmitter"/> class.
+        /// </summary>
 		public MachineCodeEmitter()
 		{
 		}
 
-		#region Code Generation Members
+		#region Code Generation
 
 		/// <summary>
 		/// Writes the unsigned short.

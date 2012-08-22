@@ -8,18 +8,21 @@
  *  Pascal Delprat (pdelprat) <pascal.delprat@online.fr>    
  */
 
-using System;
-using System.Diagnostics;
 using Mosa.Compiler.Framework;
+using Mosa.Compiler.Framework.Platform;
+using System.Diagnostics;
 using Mosa.Compiler.Metadata;
+using System;
 
 namespace Mosa.Platform.AVR32
 {
 	/// <summary>
 	/// 
 	/// </summary>
-	public abstract class AVR32Instruction : BaseInstruction
+    public abstract class AVR32Instruction : BasePlatformInstruction, IRegisterUsage
 	{
+
+        static protected RegisterBitmap NoRegisters = new RegisterBitmap();
 
 		#region Construction
 
@@ -53,6 +56,16 @@ namespace Mosa.Platform.AVR32
 
 		#region Methods
 
+        /// <summary>
+        /// Emits the specified platform instruction.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        /// <param name="emitter">The emitter.</param>
+        public override void Emit(Context context, ICodeEmitter emitter)
+        {
+            Emit(context, emitter as MachineCodeEmitter);
+        }
+
 		/// <summary>
 		/// Computes the opcode.
 		/// </summary>
@@ -60,7 +73,7 @@ namespace Mosa.Platform.AVR32
 		/// <param name="source">The source operand.</param>
 		/// <param name="third">The third operand.</param>
 		/// <returns></returns>
-		protected virtual uint ComputeOpCode(Operand destination, Operand source, Operand third)
+		protected virtual OpCode ComputeOpCode(Operand destination, Operand source, Operand third)
 		{
 			throw new System.Exception("opcode not implemented for this instruction");
 		}
@@ -72,32 +85,13 @@ namespace Mosa.Platform.AVR32
 		/// <param name="emitter">The emitter.</param>
 		protected virtual void Emit(Context context, MachineCodeEmitter emitter)
 		{
-			uint opCode = ComputeOpCode(context.Result, context.Operand1, context.Operand2);
-			emitter.WriteOpcode(opCode);
-		}
-
-		/// <summary>
-		/// Emits the specified platform instruction.
-		/// </summary>
-		/// <param name="context">The context.</param>
-		/// <param name="emitter">The emitter.</param>
-		public void Emit(Context context, ICodeEmitter emitter)
-		{
-			Emit(context, emitter as MachineCodeEmitter);
+            //OpCode opCode = ComputeOpCode(context.Result, context.Operand1, context.Operand2);
+            //emitter.Emit(opCode, context.Result, context.Operand1, context.Operand2);
 		}
 
 		#endregion // Methods
 
 		#region Operand Overrides
-
-		/// <summary>
-		/// Returns a string representation of <see cref="ConstantOperand"/>.
-		/// </summary>
-		/// <returns>A string representation of the operand.</returns>
-		public override string ToString()
-		{
-			return "AVR32." + base.ToString();
-		}
 
 		/// <summary>
 		/// Allows visitor based dispatch for this instruction object.
@@ -119,9 +113,20 @@ namespace Mosa.Platform.AVR32
 				Visit(visitor as IAVR32Visitor, context);
 		}
 
+        /// <summary>
+        /// Returns a string representation of <see cref="ConstantOperand"/>.
+        /// </summary>
+        /// <returns>A string representation of the operand.</returns>
+        public override string ToString()
+        {
+            return "AVR32." + base.ToString();
+        }
+
 		#endregion // Overrides
 
-		protected bool Is8Bit(uint value)
+        #region Typesizes
+
+        protected bool Is8Bit(uint value)
 		{
 			return ((value & 0x0000FFFF) != value);
 		}
@@ -180,7 +185,90 @@ namespace Mosa.Platform.AVR32
 				default:
 					throw new NotSupportedException(String.Format(@"CilElementType.{0} is not supported.", op.Type.Type));
 			}
-		}
+        }
 
-	}
+        #endregion
+
+        #region IRegisterUsage
+
+        /// <summary>
+        /// Gets the output registers.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        /// <returns></returns>
+        public virtual RegisterBitmap GetOutputRegisters(Context context)
+        {
+            RegisterBitmap registers = new RegisterBitmap();
+
+            if (context.Result.IsRegister)
+                registers.Set(context.Result.Register);
+
+            registers.Or(AdditionalOutputRegisters);
+
+            return registers;
+        }
+
+        /// <summary>
+        /// Gets the input registers.
+        /// </summary>
+        /// <param name="context">The context.</param>
+        /// <returns></returns>
+        public virtual RegisterBitmap GetInputRegisters(Context context)
+        {
+            RegisterBitmap registers = new RegisterBitmap();
+
+            registers.Set(GetRegister(context.Operand1, true));
+            registers.Set(GetRegister(context.Operand2, true));
+            registers.Set(GetRegister(context.Operand3, true));
+            registers.Set(GetRegister(context.Result, ResultIsInput));
+
+            registers.Or(AdditionalInputRegisters);
+
+            return registers;
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether [result is input].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [result is input]; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool ResultIsInput { get { return true; } }
+
+        /// <summary>
+        /// Gets the additional output registers.
+        /// </summary>
+        public virtual RegisterBitmap AdditionalOutputRegisters { get { return NoRegisters; } }
+
+        /// <summary>
+        /// Gets the additional input registers.
+        /// </summary>
+        public virtual RegisterBitmap AdditionalInputRegisters { get { return NoRegisters; } }
+
+        #endregion // IRegisterUsage
+
+        /// <summary>
+        /// Gets the register.
+        /// </summary>
+        /// <param name="operand">The operand.</param>
+        /// <returns></returns>
+        protected Register GetRegister(Operand operand, bool includeRegister)
+        {
+            if (operand == null)
+                return null;
+
+            if (includeRegister)
+            {
+                if (operand.IsRegister)
+                    return operand.Register;
+            }
+
+            if (operand.IsMemoryAddress || operand.IsParameter)
+            {
+                return operand.Register;
+            }
+
+            return null;
+        }
+    }
 }

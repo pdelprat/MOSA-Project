@@ -183,6 +183,7 @@
     <Compile Include="Instructions\Swap.cs" />
     <Compile Include="Instructions\Tst.cs" />
     <Compile Include="Instructions\Wdr.cs" />
+    <Compile Include="OpCode.cs" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />

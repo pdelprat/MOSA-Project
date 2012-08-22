@@ -163,9 +163,20 @@ namespace Mosa.Platform.AVR32
 			var condition = context.ConditionCode;
 			var operand1 = context.Operand1;
 			var operand2 = context.Operand2;
+            Operand r9 = Operand.CreateCPURegister(operand1.Type, GeneralPurposeRegister.R9);
+            Operand r10 = Operand.CreateCPURegister(operand1.Type, GeneralPurposeRegister.R10);
 
-			context.SetInstruction(AVR32.Cp, operand1, operand2);
-			context.AppendInstruction(AVR32.Branch, condition);
+            context.SetInstruction(AVR32.Ld, r9, operand1);
+            if (operand2.IsConstant)
+            {
+                context.AppendInstruction(AVR32.Cp, r9, operand2);
+            }
+            else
+            {
+                context.AppendInstruction(AVR32.Ld, r10, operand2);
+                context.AppendInstruction(AVR32.Cp, r9, r10);
+            }
+			context.AppendInstruction(AVR32.Branch, condition); 
 			context.SetBranch(target);
 		}
 
@@ -179,8 +190,19 @@ namespace Mosa.Platform.AVR32
 			var resultOperand = context.Result;
 			var operand1 = context.Operand1;
 			var operand2 = context.Operand2;
+            Operand r9 = Operand.CreateCPURegister(operand1.Type, GeneralPurposeRegister.R9);
+            Operand r10 = Operand.CreateCPURegister(operand1.Type, GeneralPurposeRegister.R10);
 
-			context.SetInstruction(AVR32.Cp, operand1, operand2);
+            context.SetInstruction(AVR32.Ld, r9, operand1);
+            if (operand2.IsMemoryAddress)
+            {
+                context.SetInstruction(AVR32.Ld, r10, operand2);
+            }
+            if (operand2.IsConstant)
+            {
+                context.SetInstruction(AVR32.Mov, r10, operand2);
+            }
+            context.AppendInstruction(AVR32.Cp, r9, r10);
 
 			if (resultOperand != null)
 			{
@@ -210,24 +232,26 @@ namespace Mosa.Platform.AVR32
 		/// <param name="context">The context.</param>
 		void IIRVisitor.Load(Context context)
 		{
-			Operand r8 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R8);
-			Operand result = context.Result;
+            Operand r9 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R9);
+            Operand r10 = Operand.CreateCPURegister(context.Operand1.Type, GeneralPurposeRegister.R10);
+            Operand result = context.Result;
 			Operand operand = context.Operand1;
 			Operand offset = context.Operand2;
 			IntPtr offsetPtr = IntPtr.Zero;
 
-			context.SetInstruction(AVR32.Ld, r8, operand);
+			context.SetInstruction(AVR32.Ld, r9, operand);
 			if (offset.IsConstant)
 			{
 				offsetPtr = new IntPtr(Convert.ToInt64(offset.Value));
 			}
 			else
 			{
-				context.AppendInstruction(AVR32.Mov, r8, offset);
-				context.AppendInstruction(AVR32.Add, r8, r8);
+				context.AppendInstruction(AVR32.Mov, r10, offset);
+				context.AppendInstruction(AVR32.Add, r9, r10);
 			}
 
-			context.AppendInstruction(AVR32.Ld, result, Operand.CreateMemoryAddress(r8.Type, GeneralPurposeRegister.R8, offsetPtr));
+            context.AppendInstruction(AVR32.Ld, r10, Operand.CreateMemoryAddress(r9.Type, GeneralPurposeRegister.R9, offsetPtr));
+			context.AppendInstruction(AVR32.St, result, r10);
 		}
 
 		/// <summary>
@@ -553,7 +577,7 @@ namespace Mosa.Platform.AVR32
 				context.AppendInstruction(AVR32.Add, r8, r8);
 			}
 
-			context.AppendInstruction(AVR32.Ld, Operand.CreateMemoryAddress(value.Type, GeneralPurposeRegister.R8, offsetPtr), r9);
+			context.AppendInstruction(AVR32.St, Operand.CreateMemoryAddress(value.Type, GeneralPurposeRegister.R8, offsetPtr), r9);
 		}
 
 		/// <summary>

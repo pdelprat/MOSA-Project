@@ -1271,9 +1271,14 @@ namespace Mosa.Platform.AVR32
             {
                 SplitLongOperand(context.Result, out op0L, out op0H);
                 SplitLongOperand(context.Operand1, out op1L, out op1H);
+                Operand r9 = Operand.CreateCPURegister(op1L.Type, GeneralPurposeRegister.R9);
 
-                context.SetInstruction(AVR32.Mov, op0L, op1L);
-                context.AppendInstruction(AVR32.Mov, op0H, op1H);
+                context.SetInstruction(AVR32.Ld, r9, op1L);
+                context.SetInstruction(AVR32.St, op0L, r9);
+                //context.SetInstruction(AVR32.Mov, op0L, op1L);
+                context.SetInstruction(AVR32.Ld, r9, op1H);
+                context.SetInstruction(AVR32.St, op0H, r9);
+                //context.AppendInstruction(AVR32.Mov, op0H, op1H);
             }
             else
             {
@@ -1379,11 +1384,11 @@ namespace Mosa.Platform.AVR32
                 case CilElementType.I2: goto case CilElementType.I1;
 
                 case CilElementType.I4:
-                    context.SetInstruction(AVR32.Mov, r8, op1);
+                    context.SetInstruction(AVR32.Ld, r8, op1);
                     // TODO:
                     //context.AppendInstruction(Instruction.CdqInstruction);
-                    context.AppendInstruction(AVR32.Mov, op0L, r8);
-                    context.AppendInstruction(AVR32.Mov, op0H, r9);
+                    context.AppendInstruction(AVR32.St, op0L, r8);
+                    context.AppendInstruction(AVR32.St, op0H, r9);
                     break;
 
                 case CilElementType.I8:
@@ -1436,9 +1441,9 @@ namespace Mosa.Platform.AVR32
 
             context.SetInstruction(AVR32.Mov, r8, op1);
             context.AppendInstruction(AVR32.Add, r8, offsetOperand);
-            context.AppendInstruction(AVR32.Mov, r9, Operand.CreateMemoryAddress(op0L.Type, GeneralPurposeRegister.R8, IntPtr.Zero));
+            context.AppendInstruction(AVR32.Ld, r9, Operand.CreateMemoryAddress(op0L.Type, GeneralPurposeRegister.R8, IntPtr.Zero));
             context.AppendInstruction(AVR32.Mov, op0L, r9);
-            context.AppendInstruction(AVR32.Mov, r9, Operand.CreateMemoryAddress(op0H.Type, GeneralPurposeRegister.R8, new IntPtr(4)));
+            context.AppendInstruction(AVR32.Ld, r9, Operand.CreateMemoryAddress(op0H.Type, GeneralPurposeRegister.R8, new IntPtr(4)));
             context.AppendInstruction(AVR32.Mov, op0H, r9);
         }
 
@@ -1465,9 +1470,9 @@ namespace Mosa.Platform.AVR32
             context.AppendInstruction(AVR32.Add, r9, offsetOperand);
 
             context.AppendInstruction(AVR32.Mov, r8, op1L);
-            context.AppendInstruction(AVR32.Mov, Operand.CreateMemoryAddress(BuiltInSigType.UInt32, GeneralPurposeRegister.R9, IntPtr.Zero), r8);
+            context.AppendInstruction(AVR32.St, Operand.CreateMemoryAddress(BuiltInSigType.UInt32, GeneralPurposeRegister.R9, IntPtr.Zero), r8);
             context.AppendInstruction(AVR32.Mov, r8, op1H);
-            context.AppendInstruction(AVR32.Mov, Operand.CreateMemoryAddress(BuiltInSigType.Int32, GeneralPurposeRegister.R9, new IntPtr(4)), r8);
+            context.AppendInstruction(AVR32.St, Operand.CreateMemoryAddress(BuiltInSigType.Int32, GeneralPurposeRegister.R9, new IntPtr(4)), r8);
         }
 
         /// <summary>
